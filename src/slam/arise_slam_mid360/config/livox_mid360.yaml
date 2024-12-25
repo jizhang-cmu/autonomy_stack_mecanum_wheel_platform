@@ -46,7 +46,7 @@ laser_mapping_node:
 
         imu_topic: "imu/data"
         laser_topic: "velodyne_points"
-        odom_topic: "integrated_to_init5"
+        odom_topic: "integrated_to_init"
         depthup_topic: "/rs_up/depth/cloud_filtered"
         depthdown_topic: "/rs_down/depth/cloud_filtered"
         world_frame: "map"
