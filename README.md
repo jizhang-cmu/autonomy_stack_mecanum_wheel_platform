@@ -1,4 +1,4 @@
-The repository contains the full autonomy stack for the Mecanum wheel platform. The platform is designed to support advanced AI in mind. Sensors installed on the platform include a [Livox Mid-360 lidar](https://www.livoxtech.com/mid-360). Additional sensors can be mounted to the top board with various mounting options available. The platform comes with an Intel NUC i7 computer for running the autonomy stack. Space is left for an additional Nvidia Jetson AGX Orin computer or a gaming laptop to run advanced AI models. The autonomy stack contains a SLAM module, a route planner, an exploration planner, and a based autonomy system, where the base autonomy system further includes fundamental navigation modules for terrain traversability analysts, collision avoidance, and waypoint following. The system overall is capable of taking a goal point and navigating the vehicle autonomously to the goal point as well as exploring an environment and building a map along the way. Alternatively, the system allows users to use a joystick controller to guide the navigation while the system itself is in charge of collision avoidance. We provide a simulation setup together with the real robot setup for users to take advantage of the system in various use cases. We open-source the full autonomy stack for users to replicate the system. <!--We further made an agreement with a company in Hong Kong to assemble the platform. Contact information is available at the bottom of the page for ordering the assembled platform (fully functional with the autonomy stack installed).-->
+The repository contains the full autonomy stack for the Mecanum wheel platform. The platform is designed to support advanced AI in mind. Sensors installed on the platform include a [Livox Mid-360 lidar](https://www.livoxtech.com/mid-360). Additional sensors can be mounted to the top board with various mounting options available. The platform comes with an Intel NUC i7 computer for running the autonomy stack. Space is left for an additional Nvidia Jetson AGX Orin computer or a gaming laptop to run advanced AI models. The autonomy stack contains a SLAM module, a route planner, an exploration planner, and a based autonomy system, where the base autonomy system further includes fundamental navigation modules for terrain traversability analysts, collision avoidance, and waypoint following. The system overall is capable of taking a goal point and navigating the vehicle autonomously to the goal point as well as exploring an environment and building a map along the way. Alternatively, the system allows users to use a joystick controller to guide the navigation while the system itself is in charge of collision avoidance. We provide a simulation setup together with the real robot setup for users to take advantage of the system in various use cases. We open-source the full autonomy stack for users to reproduce the system.
 
 <p align="center">
   <img src="img/mecanum_wheel_platform.jpg" alt="Mecanum Wheel Platform" width="60%"/>
@@ -375,12 +375,10 @@ The project collaborates between [Ting Cao's](https://www.microsoft.com/en-us/re
 
 ## Relevant Links
 
+The SLAM module is an upgraded implementation of [LOAM](https://github.com/cuitaixiang/LOAM_NOTED).
+
 The base autonomy system is based on [Autonomous Exploration Development Environment](https://www.cmu-exploration.com).
 
 The route planner is based on [FAR Planner](https://github.com/MichaelFYang/far_planner).
 
 The exploration planner is based on [TARE Planner](https://github.com/caochao39/tare_planner).
-
-<!--## Ordering
-
-Please contact Sam Shum at [sammy11257@gmail.com](sammy11257@gmail.com) to order the fully functional platform with the autonomy stack installed.-->
