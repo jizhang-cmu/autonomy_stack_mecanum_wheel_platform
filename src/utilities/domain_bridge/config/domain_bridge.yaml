@@ -14,7 +14,7 @@ topics:
     type: tf2_msgs/msg/TFMessage
   way_point:
     type: geometry_msgs/msg/PointStamped
-    bidirectional: True
+    reversed: True
   goal_point:
     type: geometry_msgs/msg/PointStamped
-    bidirectional: True
+    reversed: True
