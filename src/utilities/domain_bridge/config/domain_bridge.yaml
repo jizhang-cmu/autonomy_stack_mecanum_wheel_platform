@@ -1,4 +1,4 @@
-name: diablo_bridge
+name: domain_bridge
 from_domain: 0
 to_domain: 1
 topics:
