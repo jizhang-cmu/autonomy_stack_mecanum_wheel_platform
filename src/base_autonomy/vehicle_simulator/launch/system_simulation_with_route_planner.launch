@@ -21,7 +21,7 @@ def generate_launch_description():
   declare_route_planner_config = DeclareLaunchArgument('route_planner_config', default_value='indoor', description='')
   declare_world_name = DeclareLaunchArgument('world_name', default_value='unity', description='')
   declare_vehicleHeight = DeclareLaunchArgument('vehicleHeight', default_value='0.75', description='')
-  declare_cameraOffsetZ = DeclareLaunchArgument('cameraOffsetZ', default_value='0.25', description='')
+  declare_cameraOffsetZ = DeclareLaunchArgument('cameraOffsetZ', default_value='0.1', description='')
   declare_vehicleX = DeclareLaunchArgument('vehicleX', default_value='0.0', description='')
   declare_vehicleY = DeclareLaunchArgument('vehicleY', default_value='0.0', description='')
   declare_terrainZ = DeclareLaunchArgument('terrainZ', default_value='0.0', description='')
