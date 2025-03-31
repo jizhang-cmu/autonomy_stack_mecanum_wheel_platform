@@ -51,7 +51,7 @@ bool DynamicGraph::IsInterNavpointNecessary() {
             const float cur_dist = (internav_ptr->position - last_connect_pos_).norm();
             if (cur_dist < min_dist) min_dist = cur_dist;
         }
-        if (min_dist > FARUtil::kNavClearDist) return true;
+        if (min_dist > FARUtil::kNavClearDist && min_dist < FARUtil::kINF) return true;
     } 
     if ((FARUtil::free_odom_p - last_connect_pos_).norm() > FARUtil::kNearDist || 
         (it != odom_node_ptr_->edge_votes.end() && it->second.back() == 1)) 
