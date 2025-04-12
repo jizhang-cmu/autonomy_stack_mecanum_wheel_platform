@@ -293,7 +293,7 @@ For exploration planner:
 ./system_bagfile_with_exploration_planner.sh
 ```
 
-In another terminal, source the ROS workspace (required for .db3 bagfiles) and play the bagfile.
+In another terminal, source the ROS workspace (required) and play the bagfile.
 
 ```
 source install/setup.bash
