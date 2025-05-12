@@ -168,6 +168,9 @@ namespace arise_slam {
         this->declare_parameter<double>("blindBack");
         this->declare_parameter<double>("blindLeft");
         this->declare_parameter<double>("blindRight");
+        this->declare_parameter<double>("blindDiskLow");
+        this->declare_parameter<double>("blindDiskHigh");
+        this->declare_parameter<double>("blindDiskRadius");
         this->declare_parameter<bool>("use_dynamic_mask");
         this->declare_parameter<bool>("use_imu_roll_pitch");
         this->declare_parameter<bool>("use_up_realsense_points");
@@ -188,6 +191,9 @@ namespace arise_slam {
         config_.box_size.blindBack = this->get_parameter("blindBack").as_double();
         config_.box_size.blindLeft = this->get_parameter("blindLeft").as_double();
         config_.box_size.blindRight = this->get_parameter("blindRight").as_double();
+        config_.box_size.blindDiskLow = this->get_parameter("blindDiskLow").as_double();
+        config_.box_size.blindDiskHigh = this->get_parameter("blindDiskHigh").as_double();
+        config_.box_size.blindDiskRadius = this->get_parameter("blindDiskRadius").as_double();
         config_.use_imu_roll_pitch = this->get_parameter("use_imu_roll_pitch").as_bool();
         config_.use_up_realsense_points = this->get_parameter("use_up_realsense_points").as_bool();
         config_.use_down_realsense_points = this->get_parameter("use_down_realsense_points").as_bool();       
@@ -251,8 +257,11 @@ namespace arise_slam {
         for (size_t i = 0; i < cloud_in.points.size(); ++i)
         {
             //In the bounding box filter
-            if (cloud_in.points[i].x > config_.box_size.blindBack && cloud_in.points[i].x < config_.box_size.blindFront &&
-                cloud_in.points[i].y > config_.box_size.blindRight && cloud_in.points[i].y < config_.box_size.blindLeft)
+            float pointDis = sqrt(cloud_in.points[i].x * cloud_in.points[i].x + cloud_in.points[i].y * cloud_in.points[i].y);
+            if ((cloud_in.points[i].x > config_.box_size.blindBack && cloud_in.points[i].x < config_.box_size.blindFront &&
+                cloud_in.points[i].y > config_.box_size.blindRight && cloud_in.points[i].y < config_.box_size.blindLeft) ||
+                (cloud_in.points[i].z > config_.box_size.blindDiskLow && cloud_in.points[i].z < config_.box_size.blindDiskHigh &&
+                pointDis < config_.box_size.blindDiskRadius))
             {
                 continue;
             }
