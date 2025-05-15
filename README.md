@@ -367,6 +367,8 @@ Users can set up AI models on the base station computer to process the transmitt
 
 - If using Unity simulation, please increase 'obstacleHeightThre' in the 'src/base_autonomy/local_planner/launch/local_planner.launch' file from 0.05 to 0.15. Also, set 'use_boundary = true' in the 'src/exploration_planner/tare_planner/launch/explore_world.launch' to tune on exploration boundary. The exploration planner is tuned for relatively open environments. In small simulation environments, the exploration may be completed shortly after start.
 
+- If adding other components on the top board in the lidar FOV, e.g. a camera, please change 'blindFront', 'blindBack', 'blindLeft', 'blindRight' in the 'src/slam/arise_slam_mid360/config/livox_mid360.yaml' file accordingly to exclude the components from the lidar sensing.
+
 - To save a point cloud file during a run, users can set 'savePcd = true' in the 'src/base_autonomy/visualization_tools/launch/visualization_tools.launch' file. A 'pointcloud_xxx.txt' file is saved in the 'src/base_autonomy/vehicle_simulator/log' folder together with a trajectory file, where 'xxx' is the timestamp. The format is described in the 'readme.txt' file in the same folder. Once a point cloud file is saved, users can start the SLAM module in localization mode. Copy the point cloud file to the desktop and rename it 'pointcloud_local.txt'. Then, in the 'src/slam/arise_slam_mid360/config/livox_mid360.yaml' file, set 'local_mode = true' and adjust 'init_x', 'init_y', 'init_z', 'init_yaw' for the start pose.
 
 ## Credits
