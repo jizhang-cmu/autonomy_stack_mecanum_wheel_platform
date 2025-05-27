@@ -365,7 +365,7 @@ Users can set up AI models on the base station computer to process the transmitt
 
 ## Credits
 
-The project collaborates between [Ting Cao's](https://www.microsoft.com/en-us/research/people/ticao) group at Microsoft Research and [Ji Zhang's](https://frc.ri.cmu.edu/~zhangji) group at Carnegie Mellon University.
+The project is led by [Ji Zhang's](https://frc.ri.cmu.edu/~zhangji) group at Carnegie Mellon University.
 
 [gtsam](https://gtsam.org), [Sophus](http://github.com/strasdat/Sophus.git), [domain_bridge](https://github.com/ros2/domain_bridge), [livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2), [Livox-SDK2](https://github.com/Livox-SDK/Livox-SDK2), [ROS-TCP-Endpoint](https://github.com/Unity-Technologies/ROS-TCP-Endpoint), and [serial](https://github.com/wjwwood/serial) packages are from open-source releases.
 
