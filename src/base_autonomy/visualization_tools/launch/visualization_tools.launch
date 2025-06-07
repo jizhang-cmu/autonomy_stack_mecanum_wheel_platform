@@ -14,6 +14,8 @@
     <param name="yawInterval" value="0.17" />
     <param name="overallMapDisplayInterval" value="2" />
     <param name="exploredAreaDisplayInterval" value="1" />
+    <param name="saveMetric" value="false" />
+    <param name="saveTraj" value="false" />
     <param name="savePcd" value="false" />
   </node>
 
