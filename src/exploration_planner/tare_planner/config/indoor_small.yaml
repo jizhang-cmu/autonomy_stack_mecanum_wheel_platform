@@ -37,9 +37,9 @@ tare_planner_node:
 
     # PlanningEnv
     kUseFrontier : true
-    kFrontierClusterTolerance : 0.5
-    kFrontierClusterMinSize : 5
-    kUseCoverageBoundaryOnFrontier : true
+    kFrontierClusterTolerance : 1.0
+    kFrontierClusterMinSize : 8
+    kUseCoverageBoundaryOnFrontier : false
     kUseCoverageBoundaryOnObjectSurface : false
 
     # Rolling occupancy grid
