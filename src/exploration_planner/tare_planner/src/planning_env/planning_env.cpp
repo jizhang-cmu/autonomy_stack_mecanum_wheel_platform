@@ -173,7 +173,7 @@ void PlanningEnv::UpdateFrontiers()
 
     if (!frontier_cloud_->cloud_->points.empty())
     {
-      if (parameters_.kUseCoverageBoundaryOnFrontier)
+      if (parameters_.kUseCoverageBoundaryOnFrontier && !coverage_boundary_.points.empty())
       {
         GetCoverageCloudWithinBoundary<pcl::PointXYZI>(frontier_cloud_->cloud_);
       }

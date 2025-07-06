@@ -159,7 +159,7 @@ public:
     {
       pcl::copyPointCloud<PCLPointType, PlannerCloudPointType>(*keypose_cloud, *(keypose_cloud_->cloud_));
 
-      if (parameters_.kUseCoverageBoundaryOnObjectSurface)
+      if (parameters_.kUseCoverageBoundaryOnObjectSurface && !coverage_boundary_.points.empty())
       {
         GetCoverageCloudWithinBoundary<PlannerCloudPointType>(keypose_cloud_->cloud_);
       }
