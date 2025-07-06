@@ -18,7 +18,7 @@ def generate_launch_description():
   vehicleYaw = LaunchConfiguration('vehicleYaw')
   checkTerrainConn = LaunchConfiguration('checkTerrainConn')
   
-  declare_exploration_planner_config = DeclareLaunchArgument('exploration_planner_config', default_value='indoor', description='')
+  declare_exploration_planner_config = DeclareLaunchArgument('exploration_planner_config', default_value='indoor_small', description='')
   declare_world_name = DeclareLaunchArgument('world_name', default_value='unity', description='')
   declare_vehicleHeight = DeclareLaunchArgument('vehicleHeight', default_value='0.75', description='')
   declare_cameraOffsetZ = DeclareLaunchArgument('cameraOffsetZ', default_value='0.1', description='')
