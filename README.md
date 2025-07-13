@@ -107,7 +107,7 @@ Click the 'Resume Navigation to Goal' button in RVIZ to start the exploration. U
 
 The vehicle hardware is designed to support advanced AI in mind. Space is left for users to install a Jetson AGX Orin computer or a gaming laptop. Mounting slots and holes are available on the top board for users to install additional sensors. The vehicle is equipped with a 19v power regulator and a 110v power inverter, both at 400W rating to power the sensors and computers. A wireless HDMI module transmits HDMI signals to a control station, allowing users to work with the vehicle as a desktop computer - the computer moves around in the environment and communicates with the control station wirelessly.
 
-The vehicle is compatible with two types of wheels with Mecanum wheels as the default setup. The Mecanum wheels work best on indoor carpet. On indoor hard floor and outdoors, users can optionally use standard wheels.
+The vehicle is compatible with two types of wheels with Mecanum wheels as the default setup, which work best on indoor carpet. On indoor hard floor and outdoors, users can optionally use standard wheels.
 
 <p align="center">
   <img src="img/all_items.jpg" alt="All Items" width="48%"/>
