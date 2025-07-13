@@ -1,4 +1,4 @@
-The repository contains the full autonomy stack for the Mecanum wheel platform. The platform is designed to support advanced AI in mind. Sensors installed on the platform include a [Livox Mid-360 lidar](https://www.livoxtech.com/mid-360). Additional sensors can be mounted to the top board with various mounting options available. The platform comes with an Intel NUC i7 computer for running the autonomy stack. Space is left for an additional Nvidia Jetson AGX Orin computer or a gaming laptop to run advanced AI models. The autonomy stack contains a SLAM module, a route planner, an exploration planner, and a base autonomy system, where the base autonomy system further includes fundamental navigation modules for terrain traversability analysis, collision avoidance, and waypoint following. The system overall is capable of taking a goal point and navigating the vehicle autonomously to the goal point as well as exploring an environment and building a map along the way. Alternatively, the system allows users to use a joystick controller to guide the navigation while the system itself is in charge of collision avoidance. We provide a simulation setup together with the real robot setup for users to take advantage of the system in various use cases. We open-source the full autonomy stack for users to reproduce the system.
+The repository contains the full autonomy stack for the Mecanum wheel platform. The platform is designed to support advanced AI in mind. Sensors installed on the platform include a [Livox Mid-360 lidar](https://www.livoxtech.com/mid-360). Additional sensors can be mounted to the top board with various mounting options available. The platform comes with an Intel NUC i7 computer for running the autonomy stack. Space is left for an additional Nvidia Jetson AGX Orin computer or a gaming laptop to run advanced AI models. The autonomy stack contains a SLAM module, a route planner, an exploration planner, and a base autonomy system, where the base autonomy system further includes fundamental navigation modules for terrain traversability analysis, collision avoidance, and waypoint following. The system overall is capable of taking a goal point and navigating the vehicle autonomously to the goal point as well as exploring an environment and building a map along the way. Alternatively, the system allows users to use a joystick controller to guide the navigation while the system itself is in charge of collision avoidance. We provide a simulation setup together with the real robot setup for users to take advantage of the system in various use cases. We open-source the full autonomy stack.
 
 <p align="center">
   <img src="img/mecanum_wheel_platform.jpg" alt="Mecanum Wheel Platform" width="60%"/>
@@ -106,9 +106,9 @@ Click the 'Resume Navigation to Goal' button in RVIZ to start the exploration. U
 
 ### Hardware
 
-The vehicle hardware is designed to support advanced AI in mind. Space is left for users to install a Jetson AGX Orin computer or a gaming laptop. Mounting slots and holes are available on the top board for users to install additional sensors. The vehicle is equipped with a 19v inverter and a 110v inverter, both at 400W rating to power the sensors and computers. A wireless HDMI module transmits HDMI signals to a control station, allowing users to work with the vehicle as a desktop computer - the computer moves around in the environment and communicates with the control station wirelessly.
+The vehicle hardware is designed to support advanced AI in mind. Space is left for users to install a Jetson AGX Orin computer or a gaming laptop. Mounting slots and holes are available on the top board for users to install additional sensors. The vehicle is equipped with a 19v power regulator and a 110v power inverter, both at 400W rating to power the sensors and computers. A wireless HDMI module transmits HDMI signals to a control station, allowing users to work with the vehicle as a desktop computer - the computer moves around in the environment and communicates with the control station wirelessly.
 
-We supply two types of wheels to use with the vehicle. On indoor carpet, please use the Mecanum wheels. On indoor hard floor and outdoors, we recommend switching to the standard wheels.
+The vehicle is compatible with two types of wheels with Mecanum wheels as the default setup. The Mecanum wheels work best on indoor carpet. On indoor hard floor and outdoors, users can optionally use standard wheels.
 
 <p align="center">
   <img src="img/all_items.jpg" alt="All Items" width="48%"/>
@@ -246,11 +246,11 @@ Now, users can follow the same operations as in the simulation setup to navigate
 
 To launch the system with route planner or exploration planner, use the command lines below. Follow the same procedures as in the Simulation Setup section to operate the system.
 
-For route planner:
+For system with route planner:
 ```
 ./system_real_robot_with_route_planner.sh
 ```
-For exploration planner:
+For system with exploration planner:
 ```
 ./system_real_robot_with_exploration_planner.sh
 ```
