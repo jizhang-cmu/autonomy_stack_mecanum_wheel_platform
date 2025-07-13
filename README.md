@@ -67,7 +67,7 @@ After seeing data showing up in RVIZ, users can use the 'Waypoint' button to set
 <p align="center">
   <img src="img/rviz_control_panel.jpg" alt="RVIZ Control Panel" width="30%"/>
   &nbsp;&nbsp;&nbsp;&nbsp;
-  <img src="img/ps3_controller.jpg" alt="PS3 Controller" width="45%"/>
+  <img src="img/ps3_controller.jpg" alt="Joystick Controller" width="45%"/>
 </p>
 
 Alternatively, users can run a ROS node to send a series of waypoints. In another terminal, go to the folder and source the ROS workspace, then run the ROS node with the command lines below. The ROS node sends navigation boundary and speed as well. Click the 'Resume Navigation to Goal' button in RVIZ, and the vehicle will navigate inside the boundary following the waypoints. More information about the base autonomy system is available on the [Autonomous Exploration Development Environment](https://www.cmu-exploration.com) website.
@@ -213,7 +213,7 @@ colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release --package
 
 ```
 
-Take the PS3 controller and plug the USB dongle into the processing computer. Some controllers have different modes. Make sure the controller is in the right mode (usually the factory default mode) and is powered on. For this particular controller, the two LEDs on top of the center button should be lit to indicate the right mode. Holding the center button for a few seconds changes the mode. Now, power on the vehicle. Use the command lines below to launch the teleoperation test. Users can use the right joystick to set the forward and lateral speed and the left joystick to set the yaw rate. Be cautious and drive slowly at the beginning.
+Take the joystick controller and plug the USB dongle into the processing computer. Some controllers have different modes. Make sure the controller is in the right mode (usually the factory default mode) and is powered on. For this particular controller, the two LEDs on top of the center button should be lit to indicate the right mode. Holding the center button for a few seconds changes the mode. Now, power on the vehicle. Use the command lines below to launch the teleoperation test. Users can use the right joystick to set the forward and lateral speed and the left joystick to set the yaw rate. Be cautious and drive slowly at the beginning.
 
 ```
 source install/setup.sh
@@ -237,7 +237,7 @@ Power on the vehicle. In a terminal, go to the repository folder and use the com
 ./system_real_robot.sh
 ```
 
-Now, users can follow the same operations as in the simulation setup to navigate the vehicle in the environment. Please refer to the Simulation Setup section for operating the system in the *smart joystick mode*, *waypoint mode*, and *manual mode* using a combination of the 'Waypoint' button and control panel in RVIZ and the PS3 controller.
+Now, users can follow the same operations as in the simulation setup to navigate the vehicle in the environment. Please refer to the Simulation Setup section for operating the system in the *smart joystick mode*, *waypoint mode*, and *manual mode* using a combination of the 'Waypoint' button and control panel in RVIZ and the joystick controller.
 
 <p align="center">
   <img src="img/collision_avoidance.gif" alt="Collision Avoidance" width="80%"/><br>
@@ -343,7 +343,7 @@ Users can set up AI models on the base station computer to process the transmitt
 
 - In simulation, the bridge between Unity and the system is not completely stable. At the system launch, if you see an error regarding 'ros_tcp_endpoint', simply try for a second time.
 
-- If the PS3 controller is not recognized correctly at the power on of the processing computer, unplug and re-plug in the USB dongle.
+- If the joystick controller is not recognized correctly at the power on of the processing computer, unplug and re-plug in the USB dongle.
 
 - The sensor configuration leaves 1.2m of blind area in front of the vehicle at ground level. If something low jumps into the area, the system would not know.
 
