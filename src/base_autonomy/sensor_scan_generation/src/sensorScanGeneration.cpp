@@ -109,7 +109,7 @@ int main(int argc, char** argv)
 
   typedef message_filters::sync_policies::ApproximateTime<nav_msgs::msg::Odometry, sensor_msgs::msg::PointCloud2> syncPolicy;
   typedef message_filters::Synchronizer<syncPolicy> Sync;
-  boost::shared_ptr<Sync> sync_;
+  std::shared_ptr<Sync> sync_;
   
   // Define qos_profile as the pre-defined rmw_qos_profile_sensor_data, but with depth equal to 1.
   rmw_qos_profile_t qos_profile=

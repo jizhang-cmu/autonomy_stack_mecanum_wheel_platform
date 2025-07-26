@@ -7,7 +7,7 @@
 namespace Sophus {
 namespace test {
 
-class LocalParameterizationSE3 : public ceres::LocalParameterization {
+class LocalParameterizationSE3 : public ceres::Manifold {
  public:
   virtual ~LocalParameterizationSE3() {}
 

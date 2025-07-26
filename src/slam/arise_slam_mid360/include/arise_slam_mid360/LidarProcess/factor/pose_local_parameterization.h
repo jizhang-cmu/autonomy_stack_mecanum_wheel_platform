@@ -9,12 +9,15 @@
 #include <eigen3/Eigen/Dense>
 #include <ceres/ceres.h>
 #include "../../utils/utility.h"
-class PoseLocalParameterization : public ceres::LocalParameterization
+class PoseLocalParameterization : public ceres::Manifold
 {
     virtual bool Plus(const double *x, const double *delta, double *x_plus_delta) const;
-    virtual bool ComputeJacobian(const double *x, double *jacobian) const;
-    virtual int GlobalSize() const { return 7; };
-    virtual int LocalSize() const { return 6; };
+    virtual bool PlusJacobian(const double *x, double *jacobian) const;
+    virtual int AmbientSize() const;
+    virtual int TangentSize() const;
+
+    virtual bool Minus(const double *x, const double *delta, double *x_minus_delta) const;
+    virtual bool MinusJacobian(const double* x, double* jacobian) const;
 };
 
 

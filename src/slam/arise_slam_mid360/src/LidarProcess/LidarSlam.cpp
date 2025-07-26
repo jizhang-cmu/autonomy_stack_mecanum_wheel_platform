@@ -206,7 +206,7 @@ namespace arise_slam {
 
 #if 0
                     ceres::LossFunction *loss_function = new ceres::HuberLoss(0.1);
-                    ceres::LocalParameterization *q_parameterization =
+                    ceres::Manifold *q_parameterization =
                             new ceres::EigenQuaternionParameterization();
                     problem.AddParameterBlock(pose_parameters, 3);
                     problem.AddParameterBlock(pose_parameters + 3, 4,q_parameterization);

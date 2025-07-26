@@ -1121,7 +1121,7 @@ namespace arise_slam {
     }
 
     void laserMapping::process() {
-        while (rclcpp::ok()) {
+        if (rclcpp::ok()) {
             while (!cornerLastBuf.empty() && !surfLastBuf.empty() &&
                    !fullResBuf.empty()&& !IMUPredictionBuf.empty() ) {
 
@@ -1288,8 +1288,8 @@ namespace arise_slam {
                 //     saveLocalizationPose(timeLaserOdometry, T_w_lidar, slam.map_dir.c_str());
                 // save_debug_statistic(debug_file);
             }
-            std::chrono::milliseconds dura(2);
-            std::this_thread::sleep_for(dura);
+            // std::chrono::milliseconds dura(2);
+            // std::this_thread::sleep_for(dura);
         }
     }
 

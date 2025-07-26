@@ -3,7 +3,7 @@
 #include <sensor_msgs/msg/compressed_image.hpp>
 
 #include <opencv2/opencv.hpp>
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 
 std::string camera_in_topic = "/camera/image/compressed";
 std::string sem_in_topic = "/camera/semantic_image/compressed";

@@ -67,7 +67,7 @@ def generate_launch_description():
         executable="laser_mapping_node",
         output={
             "stdout": "screen",
-            "stderr": "screen",
+            #"stderr": "screen",
         },
         parameters=[LaunchConfiguration("config_file"),
             { "calibration_file": LaunchConfiguration("calibration_file"),

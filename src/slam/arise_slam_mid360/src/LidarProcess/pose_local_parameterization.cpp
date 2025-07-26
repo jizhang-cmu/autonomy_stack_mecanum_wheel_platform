@@ -21,11 +21,30 @@ bool PoseLocalParameterization::Plus(const double *x, const double *delta, doubl
 
     return true;
 }
-bool PoseLocalParameterization::ComputeJacobian(const double *x, double *jacobian) const
+bool PoseLocalParameterization::PlusJacobian(const double *x, double *jacobian) const
 {
     Eigen::Map<Eigen::Matrix<double, 7, 6, Eigen::RowMajor>> j(jacobian);
     j.topRows<6>().setIdentity();
     j.bottomRows<1>().setZero();
 
     return true;
+}
+int PoseLocalParameterization::AmbientSize() const
+{
+  return 7;
+}
+int PoseLocalParameterization::TangentSize() const
+{
+  return 6;
+}
+
+// Dummy
+bool PoseLocalParameterization::Minus(const double *x, const double *delta, double *x_minus_delta) const
+{
+  throw std::invalid_argument("SE3::Manifold::Minus() should never be called");
+}
+
+bool PoseLocalParameterization::MinusJacobian(const double* x, double* jacobian) const
+{
+  throw std::invalid_argument("SE3::Manifold::MinusJacobian() should never be called");
 }
