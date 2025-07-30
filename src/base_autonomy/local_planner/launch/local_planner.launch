@@ -20,7 +20,7 @@
     <param name="vehicleWidth" value="0.5" />
     <param name="sensorOffsetX" value="$(var sensorOffsetX)" />
     <param name="sensorOffsetY" value="$(var sensorOffsetY)" />
-    <param name="twoWayDrive" value="$(var twoWayDrive)" />
+    <param name="twoWayDrive" value="true" />
     <param name="laserVoxelSize" value="0.05" />
     <param name="terrainVoxelSize" value="0.2" />
     <param name="useTerrainAnalysis" value="true" />
