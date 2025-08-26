@@ -61,6 +61,8 @@ double groundHeightThre = 0.1;
 double costHeightThre1 = 0.15;
 double costHeightThre2 = 0.1;
 bool useCost = false;
+int slowPathNumThre = -1;
+int slowGroupNumThre = 1;
 const int laserCloudStackNum = 1;
 int laserCloudCount = 0;
 int pointPerPathThre = 2;
@@ -528,6 +530,8 @@ int main(int argc, char** argv)
   nh->declare_parameter<double>("costHeightThre1", costHeightThre1);
   nh->declare_parameter<double>("costHeightThre2", costHeightThre2);
   nh->declare_parameter<bool>("useCost", useCost);
+  nh->declare_parameter<int>("slowPathNumThre", slowPathNumThre);
+  nh->declare_parameter<int>("slowGroupNumThre", slowGroupNumThre);
   nh->declare_parameter<int>("pointPerPathThre", pointPerPathThre);
   nh->declare_parameter<double>("minRelZ", minRelZ);
   nh->declare_parameter<double>("maxRelZ", maxRelZ);
@@ -572,6 +576,8 @@ int main(int argc, char** argv)
   nh->get_parameter("costHeightThre1", costHeightThre1);
   nh->get_parameter("costHeightThre2", costHeightThre2);
   nh->get_parameter("useCost", useCost);
+  nh->get_parameter("slowPathNumThre", slowPathNumThre);
+  nh->get_parameter("slowGroupNumThre", slowGroupNumThre);
   nh->get_parameter("pointPerPathThre", pointPerPathThre);
   nh->get_parameter("minRelZ", minRelZ);
   nh->get_parameter("maxRelZ", maxRelZ);
@@ -911,14 +917,17 @@ int main(int argc, char** argv)
 
         float penaltyScore = 0;
         if (selectedGroupID >= 0) {
-          if (clearPathPerGroupNum[selectedGroupID] > 0) {
-            penaltyScore = pathPenaltyPerGroupScore[selectedGroupID] / clearPathPerGroupNum[selectedGroupID];
+          int selectedPathNum = clearPathPerGroupNum[selectedGroupID];
+          if (selectedPathNum > 0) {
+            penaltyScore = pathPenaltyPerGroupScore[selectedGroupID] / selectedPathNum;
           }
+
+          if (penaltyScore > costHeightThre1) slow.data = 1;
+          else if (penaltyScore > costHeightThre2) slow.data = 2;
+          else if (selectedPathNum < slowPathNumThre && fabs(selectedGroupID - 129) > slowGroupNumThre) slow.data = 3;
+          else slow.data = 0;
+          pubSlowDown->publish(slow);
         }
-        if (penaltyScore > costHeightThre1) slow.data = 1;
-        else if (penaltyScore > costHeightThre2) slow.data = 2;
-        else slow.data = 0;
-        pubSlowDown->publish(slow);
 
         if (selectedGroupID >= 0) {
           int rotDir = int(selectedGroupID / groupNum);
