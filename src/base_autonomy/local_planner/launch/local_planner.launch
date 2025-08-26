@@ -32,6 +32,8 @@
     <param name="costHeightThre1" value="0.1" />
     <param name="costHeightThre2" value="0.05" />
     <param name="useCost" value="false" />
+    <param name="slowPathNumThre" value="-1" />
+    <param name="slowGroupNumThre" value="1" />
     <param name="pointPerPathThre" value="2" />
     <param name="minRelZ" value="-0.4" />
     <param name="maxRelZ" value="0.3" />
@@ -78,6 +80,7 @@
     <param name="inclRateThre" value="120.0" />
     <param name="slowRate1" value="0.25" />
     <param name="slowRate2" value="0.5" />
+    <param name="slowRate3" value="0.75" />
     <param name="slowTime1" value="2.0" />
     <param name="slowTime2" value="2.0" />
     <param name="useInclToStop" value="false" />
