@@ -63,6 +63,7 @@ bool useInclRateToSlow = false;
 double inclRateThre = 120.0;
 double slowRate1 = 0.25;
 double slowRate2 = 0.5;
+double slowRate3 = 0.75;
 double slowTime1 = 2.0;
 double slowTime2 = 2.0;
 bool useInclToStop = false;
@@ -239,6 +240,7 @@ int main(int argc, char** argv)
   nh->declare_parameter<double>("inclRateThre", inclRateThre);
   nh->declare_parameter<double>("slowRate1", slowRate1);
   nh->declare_parameter<double>("slowRate2", slowRate2);
+  nh->declare_parameter<double>("slowRate3", slowRate3);
   nh->declare_parameter<double>("slowTime1", slowTime1);
   nh->declare_parameter<double>("slowTime2", slowTime2);
   nh->declare_parameter<bool>("useInclToStop", useInclToStop);
@@ -273,6 +275,7 @@ int main(int argc, char** argv)
   nh->get_parameter("inclRateThre", inclRateThre);
   nh->get_parameter("slowRate1", slowRate1);
   nh->get_parameter("slowRate2", slowRate2);
+  nh->get_parameter("slowRate3", slowRate3);
   nh->get_parameter("slowTime1", slowTime1);
   nh->get_parameter("slowTime2", slowTime2);
   nh->get_parameter("useInclToStop", useInclToStop);
@@ -396,6 +399,7 @@ int main(int argc, char** argv)
       float joySpeed3 = joySpeed2;
       if (odomTime < slowInitTime + slowTime1 && slowInitTime > 0 || slowDown == 1) joySpeed3 *= slowRate1;
       else if (odomTime < slowInitTime + slowTime1 + slowTime2 && slowInitTime > 0 || slowDown == 2) joySpeed3 *= slowRate2;
+      else if (slowDown == 3) joySpeed3 *= slowRate3;
 
       if ((fabs(dirDiff) < dirDiffThre || (dis < omniDirGoalThre && fabs(dirDiff) < omniDirDiffThre)) && dis > stopDisThre) {
         if (vehicleSpeed < joySpeed3) vehicleSpeed += maxAccel / 100.0;
