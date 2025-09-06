@@ -1,0 +1,27 @@
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+
+def generate_launch_description():
+  
+  start_arise_slam = IncludeLaunchDescription(
+    PythonLaunchDescriptionSource(os.path.join(
+      get_package_share_directory('arise_slam_mid360'), 'launch', 'arize_slam.launch.py')
+    )
+  )
+
+  start_mid360 = IncludeLaunchDescription(
+    PythonLaunchDescriptionSource(
+      [get_package_share_directory('livox_ros_driver2'), '/launch_ROS2/msg_MID360_launch.py']),
+  )
+
+  ld = LaunchDescription()
+
+  # Add the actions
+  ld.add_action(start_arise_slam)
+  ld.add_action(start_mid360)
+
+  return ld
