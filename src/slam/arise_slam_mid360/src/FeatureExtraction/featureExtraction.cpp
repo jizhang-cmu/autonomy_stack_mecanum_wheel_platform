@@ -47,10 +47,11 @@ namespace arise_slam {
             RCLCPP_ERROR(this->get_logger(), "[arise_slam::featureExtraction] Could not read parameters. Exiting...");
             rclcpp::shutdown();
         }
-         
+        
         RCLCPP_WARN(this->get_logger(), "config_.skipFrame: %d", config_.skipFrame);
+        RCLCPP_WARN(this->get_logger(), "config_.lidar_flip: %d", config_.lidar_flip);
+        RCLCPP_INFO(this->get_logger(), "config_.use_imu_roll_pitch %d \n", config_.use_imu_roll_pitch);
         RCLCPP_INFO(this->get_logger(), "scan line number %d \n", config_.N_SCANS);      
-        RCLCPP_INFO(this->get_logger(), "use imu roll and pitch %d \n", config_.use_imu_roll_pitch);
         RCLCPP_INFO(this->get_logger(), "\033[1;32m----> use up realsense camera points %d \n \033[0m", config_.use_up_realsense_points);
         RCLCPP_INFO(this->get_logger(), "\033[1;32m----> use down realsense camera points %d \n \033[0m", config_.use_down_realsense_points);
 
@@ -164,6 +165,7 @@ namespace arise_slam {
     {          
         this->declare_parameter<int>("scan_line");
         this->declare_parameter<int>("mapping_skip_frame");
+        this->declare_parameter<bool>("lidar_flip");
         this->declare_parameter<double>("blindFront");
         this->declare_parameter<double>("blindBack");
         this->declare_parameter<double>("blindLeft");
@@ -187,6 +189,7 @@ namespace arise_slam {
         
         config_.N_SCANS = this->get_parameter("scan_line").as_int();
         config_.skipFrame = this->get_parameter("mapping_skip_frame").as_int();
+        config_.lidar_flip = this->get_parameter("lidar_flip").as_bool();
         config_.box_size.blindFront = this->get_parameter("blindFront").as_double();
         config_.box_size.blindBack = this->get_parameter("blindBack").as_double();
         config_.box_size.blindLeft = this->get_parameter("blindLeft").as_double();
@@ -1187,6 +1190,13 @@ namespace arise_slam {
 
     void featureExtraction::imu_Handler(const sensor_msgs::msg::Imu::SharedPtr msg_in)
     {   
+        if (config_.lidar_flip) 
+        {
+            msg_in->linear_acceleration.y *= -1.0;
+            msg_in->linear_acceleration.z *= -1.0;
+            msg_in->angular_velocity.y *= -1.0;
+            msg_in->angular_velocity.z *= -1.0;
+        }
        
         m_buf.lock();
         auto msg = msg_in;
@@ -1463,6 +1473,15 @@ namespace arise_slam {
 
         }
 
+        if (config_.lidar_flip) 
+        {
+            for (uint i = 1; i < pointCloud->points.size(); i++)
+            {
+                pointCloud->points[i].y *= -1.0;
+                pointCloud->points[i].z *= -1.0;
+            }
+        }
+
         // if (lidarBuf.getSize() > 1)
         // {
         //     // Remove oldest lidar data from the buffer
@@ -1521,6 +1540,15 @@ namespace arise_slam {
         frameCount = frameCount + 1;
         if (frameCount % config_.skipFrame != 0)
             return; 
+
+        if (config_.lidar_flip) 
+        {
+            for (uint i = 1; i < msg->point_num; i++)
+            {
+                msg->points[i].y *= -1.0;
+                msg->points[i].z *= -1.0;
+            }
+        }
 
         m_buf.lock();
         
