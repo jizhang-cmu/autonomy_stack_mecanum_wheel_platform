@@ -81,6 +81,7 @@ namespace arise_slam {
     struct feature_extraction_config{
         bounds_t box_size;
         int skipFrame;
+        bool lidar_flip;
         int N_SCANS;
         int provide_point_time;
         int point_filter_num;
