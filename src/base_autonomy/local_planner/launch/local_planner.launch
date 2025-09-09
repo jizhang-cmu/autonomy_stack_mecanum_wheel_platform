@@ -1,25 +1,18 @@
 <launch>
 
   <arg name="config" default="omniDir"/> <!--omniDir: if with mecanum wheels, standard: if with standard wheels /-->
-  <arg name="realRobot" default="false"/>
-  <arg name="sensorOffsetX" default="0.0"/>
-  <arg name="sensorOffsetY" default="0.0"/>
-  <arg name="cameraOffsetZ" default="0.0"/>
+  <arg name="robot_config" default="unitree/unitree_g1"/> <!--Robot-specific config file (without .yaml extension)-->
   <arg name="twoWayDrive" default="false"/>
-  <arg name="maxSpeed" default="0.875"/>
   <arg name="autonomyMode" default="false"/>
-  <arg name="autonomySpeed" default="0.875"/>
   <arg name="joyToSpeedDelay" default="2.0"/>
   <arg name="goalX" default="0.0"/>
   <arg name="goalY" default="0.0"/>
+  <arg name="cameraOffsetZ" default="0.0"/>
 
   <node pkg="local_planner" exec="localPlanner" name="localPlanner" output="screen">
     <param from="$(find-pkg-share local_planner)/config/$(var config).yaml"/>
+    <param from="$(find-pkg-share local_planner)/config/$(var robot_config).yaml"/>
     <param name="pathFolder" value="$(find-pkg-share local_planner)/paths" />
-    <param name="vehicleLength" value="0.5" />
-    <param name="vehicleWidth" value="0.5" />
-    <param name="sensorOffsetX" value="$(var sensorOffsetX)" />
-    <param name="sensorOffsetY" value="$(var sensorOffsetY)" />
     <param name="twoWayDrive" value="true" />
     <param name="laserVoxelSize" value="0.05" />
     <param name="terrainVoxelSize" value="0.2" />
@@ -27,8 +20,8 @@
     <param name="checkObstacle" value="true" />
     <param name="checkRotObstacle" value="false" />
     <param name="adjacentRange" value="3.5" />
-    <param name="obstacleHeightThre" value="0.05" />
-    <param name="groundHeightThre" value="0.05" />
+    <param name="obstacleHeightThre" value="0.1" />
+    <param name="groundHeightThre" value="0.1" />
     <param name="costHeightThre1" value="0.1" />
     <param name="costHeightThre2" value="0.05" />
     <param name="useCost" value="false" />
@@ -37,7 +30,6 @@
     <param name="pointPerPathThre" value="2" />
     <param name="minRelZ" value="-0.4" />
     <param name="maxRelZ" value="0.3" />
-    <param name="maxSpeed" value="$(var maxSpeed)" />
     <param name="dirWeight" value="0.02" />
     <param name="dirThre" value="90.0" />
     <param name="dirToVehicle" value="false" />
@@ -50,11 +42,8 @@
     <param name="pathRangeBySpeed" value="true" />
     <param name="pathCropByGoal" value="true" />
     <param name="autonomyMode" value="$(var autonomyMode)" />
-    <param name="autonomySpeed" value="$(var autonomySpeed)" />
     <param name="joyToSpeedDelay" value="$(var joyToSpeedDelay)" />
     <param name="joyToCheckObstacleDelay" value="5.0" />
-    <param name="goalClearRange" value="0.35" />
-    <param name="goalBehindRange" value="0.35" />
     <param name="freezeAng" value="90.0" />
     <param name="freezeTime" value="0.0" />
     <param name="goalX" value="$(var goalX)" />
@@ -63,19 +52,10 @@
 
   <node pkg="local_planner" exec="pathFollower" name="pathFollower" output="screen">
     <param from="$(find-pkg-share local_planner)/config/$(var config).yaml"/>
-    <param name="realRobot" value="$(var realRobot)" />
-    <param name="serialPort" value="/dev/ttyACM0" />
-    <param name="baudrate" value="115200" />
-    <param name="sensorOffsetX" value="$(var sensorOffsetX)" />
-    <param name="sensorOffsetY" value="$(var sensorOffsetY)" />
+    <param from="$(find-pkg-share local_planner)/config/$(var robot_config).yaml"/>
     <param name="pubSkipNum" value="1" />
     <param name="twoWayDrive" value="$(var twoWayDrive)" />
-    <param name="lookAheadDis" value="0.5" />
-    <param name="maxSpeed" value="$(var maxSpeed)" />
-    <param name="maxAccel" value="2.0" />
     <param name="switchTimeThre" value="1.0" />
-    <param name="omniDirDiffThre" value="1.5" />
-    <param name="slowDwnDisThre" value="0.875" />
     <param name="useInclRateToSlow" value="false" />
     <param name="inclRateThre" value="120.0" />
     <param name="slowRate1" value="0.25" />
@@ -89,11 +69,11 @@
     <param name="noRotAtStop" value="false" />
     <param name="noRotAtGoal" value="true" />
     <param name="autonomyMode" value="$(var autonomyMode)" />
-    <param name="autonomySpeed" value="$(var autonomySpeed)" />
     <param name="joyToSpeedDelay" value="$(var joyToSpeedDelay)" />
   </node>
 
-  <node pkg="tf2_ros" exec="static_transform_publisher" name="vehicleTransPublisher" args="-$(var sensorOffsetX) -$(var sensorOffsetY) 0 0 0 0 /sensor /vehicle"/>
+  <!-- Note: sensorOffsetX and sensorOffsetY are now loaded from robot_config file -->
+  <node pkg="tf2_ros" exec="static_transform_publisher" name="vehicleTransPublisher" args="0 0 -0.40618 0 0 0 /sensor /vehicle"/>
 
   <node pkg="tf2_ros" exec="static_transform_publisher" name="sensorTransPublisher" args="0 0 $(var cameraOffsetZ) -1.5707963 0 -1.5707963 /sensor /camera"/>
 

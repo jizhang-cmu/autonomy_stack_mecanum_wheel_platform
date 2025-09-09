@@ -1,0 +1,28 @@
+localPlanner:
+  ros__parameters:
+    # Vehicle dimensions
+    vehicleLength: 0.5
+    vehicleWidth: 0.5
+    
+    # Sensor mounting offsets
+    sensorOffsetX: 0.0
+    sensorOffsetY: 0.0
+    
+    # Speed limits
+    maxSpeed: 0.5
+    autonomySpeed: 0.875
+    
+    # Goal tolerances
+    goalClearRange: 0.6
+    goalBehindRange: 0.8
+
+pathFollower:
+  ros__parameters:
+
+    # Control parameters
+    lookAheadDis: 0.5
+    maxAccel: 2.0
+    
+    # Slow down threshold
+    slowDwnDisThre: 0.875
+    omniDirDiffThre: 1.5
