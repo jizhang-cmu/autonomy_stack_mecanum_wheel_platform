@@ -35,9 +35,9 @@ namespace arise_slam {
             rclcpp::shutdown();
         }
 
-
-        RCLCPP_INFO(this->get_logger(), "[AriseSlam::imuPreintegration] use_imu_rol_pitch:  %d", config_.use_imu_roll_pitch);
-
+        RCLCPP_INFO(this->get_logger(), "[AriseSlam::imuPreintegration] use_imu_roll_pitch:  %d", config_.use_imu_roll_pitch);
+        RCLCPP_INFO(this->get_logger(), "[AriseSlam::imuPreintegration] lidar_flip:  %d", config_.lidar_flip);
+        
         //subscribe and publish relevant topics
         subImu = this->create_subscription<sensor_msgs::msg::Imu>(
             IMU_TOPIC, 10,
@@ -125,6 +125,7 @@ namespace arise_slam {
         this->declare_parameter<float>("lidar_correction_noise",0.01);
         this->declare_parameter<float>("smooth_factor",0.9);
         this->declare_parameter<bool>("use_imu_roll_pitch",true);
+        this->declare_parameter<bool>("lidar_flip",false);
         this->declare_parameter<std::string>("sensor");
         this->declare_parameter<double>("imu_acc_x_limit", 1.0);
         this->declare_parameter<double>("imu_acc_y_limit", 1.0);
@@ -138,6 +139,7 @@ namespace arise_slam {
         config_.lidar_correction_noise = this->get_parameter("lidar_correction_noise").as_double();
         config_.smooth_factor = this->get_parameter("smooth_factor").as_double();
         config_.use_imu_roll_pitch = this->get_parameter("use_imu_roll_pitch").as_bool();
+        config_.lidar_flip = this->get_parameter("lidar_flip").as_bool();
         config_.imu_acc_x_limit = this->get_parameter("imu_acc_x_limit").as_double();
         config_.imu_acc_y_limit = this->get_parameter("imu_acc_y_limit").as_double();
         config_.imu_acc_z_limit = this->get_parameter("imu_acc_z_limit").as_double();
@@ -146,6 +148,7 @@ namespace arise_slam {
         RCLCPP_INFO(this->get_logger(), "config_.imu_acc_z_limit: %f", config_.imu_acc_z_limit);
 
         RCLCPP_INFO(this->get_logger(), "config_.use_imu_roll_pitch: %d", config_.use_imu_roll_pitch);
+        RCLCPP_INFO(this->get_logger(), "config_.lidar_flip: %d", config_.lidar_flip);
 
         RCLCPP_INFO(this->get_logger(), "imuAccNoise: %f  imuAccBiasN: %f imuGyrNoise %f imuGyrBiasN %f imuGravity %f",
                     config_.imuAccNoise, config_.imuAccBiasN, config_.imuGyrNoise, config_.imuGyrBiasN, config_.imuGravity);
@@ -841,6 +844,13 @@ namespace arise_slam {
 
     void imuPreintegration::imuHandler(const sensor_msgs::msg::Imu::SharedPtr imu_raw) 
     {
+        if (config_.lidar_flip) 
+        {
+          imu_raw->linear_acceleration.y *= -1.0;
+          imu_raw->linear_acceleration.z *= -1.0;
+          imu_raw->angular_velocity.y *= -1.0;
+          imu_raw->angular_velocity.z *= -1.0;
+        }
      
         std::lock_guard<std::mutex> lock(mBuf);
         

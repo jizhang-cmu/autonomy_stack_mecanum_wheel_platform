@@ -54,6 +54,7 @@ namespace arise_slam {
         float lidar_correction_noise;
         float smooth_factor;
         bool  use_imu_roll_pitch;
+        bool lidar_flip;
         SensorType sensor;
 
         double imu_acc_x_limit;
