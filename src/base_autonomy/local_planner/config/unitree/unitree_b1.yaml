@@ -1,13 +1,13 @@
 # Sensor mounting offsets (used for TF transforms)
 sensorMountingOffsets:
-  sensorOffsetX: 0.0
+  sensorOffsetX: 0.3
   sensorOffsetY: 0.0
-  sensorOffsetZ: -0.4
+  sensorOffsetZ: 0.15
 
 localPlanner:
   ros__parameters:
     # Vehicle dimensions
-    vehicleLength: 0.5
+    vehicleLength: 1.2
     vehicleWidth: 0.5
 
     # Speed limits

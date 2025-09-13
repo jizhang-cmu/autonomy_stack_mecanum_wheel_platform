@@ -2,7 +2,7 @@
 sensorMountingOffsets:
   sensorOffsetX: 0.0
   sensorOffsetY: 0.0
-  sensorOffsetZ: -0.4
+  sensorOffsetZ: 0.0
 
 localPlanner:
   ros__parameters:
@@ -11,12 +11,12 @@ localPlanner:
     vehicleWidth: 0.5
 
     # Speed limits
-    maxSpeed: 0.5
+    maxSpeed: 0.875
     autonomySpeed: 0.875
 
     # Goal tolerances
-    goalClearRange: 0.6
-    goalBehindRange: 0.8
+    goalClearRange: 0.35
+    goalBehindRange: 0.35
 
 pathFollower:
   ros__parameters:

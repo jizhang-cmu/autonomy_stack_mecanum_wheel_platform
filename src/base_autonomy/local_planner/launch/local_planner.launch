@@ -9,6 +9,11 @@
   <arg name="goalY" default="0.0"/>
   <arg name="cameraOffsetZ" default="0.0"/>
 
+  <!-- Sensor offset arguments from robot config -->
+  <arg name="sensorOffsetX" default="0.0"/>
+  <arg name="sensorOffsetY" default="0.0"/>
+  <arg name="sensorOffsetZ" default="0.0"/>
+
   <node pkg="local_planner" exec="localPlanner" name="localPlanner" output="screen">
     <param from="$(find-pkg-share local_planner)/config/$(var config).yaml"/>
     <param from="$(find-pkg-share local_planner)/config/$(var robot_config).yaml"/>
@@ -72,8 +77,8 @@
     <param name="joyToSpeedDelay" value="$(var joyToSpeedDelay)" />
   </node>
 
-  <!-- Note: sensorOffsetX and sensorOffsetY are now loaded from robot_config file -->
-  <node pkg="tf2_ros" exec="static_transform_publisher" name="vehicleTransPublisher" args="0 0 -0.40618 0 0 0 /sensor /vehicle"/>
+  <!-- Static transform using sensor offsets from launch arguments (should match robot_config file values) -->
+  <node pkg="tf2_ros" exec="static_transform_publisher" name="vehicleTransPublisher" args="$(var sensorOffsetX) $(var sensorOffsetY) $(var sensorOffsetZ) 0 0 0 /sensor /vehicle"/>
 
   <node pkg="tf2_ros" exec="static_transform_publisher" name="sensorTransPublisher" args="0 0 $(var cameraOffsetZ) -1.5707963 0 -1.5707963 /sensor /camera"/>
 

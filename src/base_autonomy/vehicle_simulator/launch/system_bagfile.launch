@@ -25,8 +25,8 @@ def generate_launch_description():
   declare_checkTerrainConn = DeclareLaunchArgument('checkTerrainConn', default_value='true', description='')
   
   start_local_planner = IncludeLaunchDescription(
-    FrontendLaunchDescriptionSource(os.path.join(
-      get_package_share_directory('local_planner'), 'launch', 'local_planner.launch')
+    PythonLaunchDescriptionSource(os.path.join(
+      get_package_share_directory('local_planner'), 'launch', 'local_planner.launch.py')
     ),
     launch_arguments={
       'realRobot': 'false',

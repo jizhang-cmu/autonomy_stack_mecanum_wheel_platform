@@ -49,6 +49,24 @@ nano src/utilities/livox_ros_driver2/config/MID360_config.json
 ping 192.168.1.1xx  # Replace xx with your last 2 digits
 ```
 
+## Robot Configuration
+
+### Setting Robot Type
+
+The system supports different robot configurations. Set the `ROBOT_CONFIG_PATH` environment variable to specify which robot configuration to use:
+
+```bash
+# For Unitree G1 (default if not set)
+export ROBOT_CONFIG_PATH="unitree/unitree_g1"
+
+# Add to ~/.bashrc to make permanent
+echo 'export ROBOT_CONFIG_PATH="unitree/unitree_g1"' >> ~/.bashrc
+```
+
+Available robot configurations:
+- `unitree/unitree_g1` - Unitree G1 robot (default)
+- Add your custom robot configs in `src/base_autonomy/local_planner/config/`
+
 ## System Launch
 
 ### Simulation Mode
