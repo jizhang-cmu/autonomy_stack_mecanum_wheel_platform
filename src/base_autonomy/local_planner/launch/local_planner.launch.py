@@ -69,9 +69,9 @@ def generate_launch_description():
         with open(robot_config_path, 'r') as file:
             config_data = yaml.safe_load(file)
 
-        # Extract sensor offsets from sensorMountingOffsets section
-        if 'sensorMountingOffsets' in config_data:
-            mounting_offsets = config_data['sensorMountingOffsets']
+        # Extract sensor offsets from sensorMountingOffsets/ros__parameters section
+        if 'sensorMountingOffsets' in config_data and 'ros__parameters' in config_data['sensorMountingOffsets']:
+            mounting_offsets = config_data['sensorMountingOffsets']['ros__parameters']
             for key in sensor_offsets.keys():
                 if key in mounting_offsets:
                     sensor_offsets[key] = mounting_offsets[key]

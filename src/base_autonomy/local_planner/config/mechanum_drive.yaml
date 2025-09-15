@@ -1,8 +1,8 @@
-# Sensor mounting offsets (used for TF transforms)
 sensorMountingOffsets:
-  sensorOffsetX: 0.0
-  sensorOffsetY: 0.0
-  sensorOffsetZ: 0.0
+  ros__parameters:
+    sensorOffsetX: 0.0
+    sensorOffsetY: 0.0
+    sensorOffsetZ: 0.0
 
 localPlanner:
   ros__parameters:
