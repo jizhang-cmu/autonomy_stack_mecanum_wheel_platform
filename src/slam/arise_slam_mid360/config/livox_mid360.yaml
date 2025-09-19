@@ -19,14 +19,6 @@ feature_extraction_node:
         scan_line: 4 #16 64
         sensor: "livox"
         mapping_skip_frame: 1
-        lidar_flip: false
-        blindFront: 0.1
-        blindBack: -0.2
-        blindLeft: 0.1
-        blindRight: -0.1
-        blindDiskLow: -0.8
-        blindDiskHigh: 0.8
-        blindDiskRadius: 0.4
         use_imu_roll_pitch: false
         use_dynamic_mask: false
         use_up_realsense_points: false
@@ -109,7 +101,6 @@ imu_preintegration_node:
         gyr_w: 3.5640318696367613e-05       # gyroscope bias random work noise standard deviation.     #4.0e-5
         g_norm: 9.80511    # 0 means you need to provide both imu-camera and laser-camera extrinsic
         use_imu_roll_pitch: false
-        lidar_flip: false
         imu_acc_x_limit: 0.3
         imu_acc_y_limit: 0.2
         imu_acc_z_limit: 0.1

@@ -2,7 +2,7 @@ import os
 import yaml
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from ament_index_python.packages import get_package_share_directory
@@ -87,15 +87,13 @@ def generate_launch_description():
         name='localPlanner',
         output='screen',
         parameters=[
-            PathJoinSubstitution([
-                FindPackageShare('local_planner'),
-                'config',
-                [LaunchConfiguration('config'), '.yaml']
+            PythonExpression([
+                "'", FindPackageShare('local_planner'), "/config/",
+                LaunchConfiguration('config'), ".yaml'"
             ]),
-            PathJoinSubstitution([
-                FindPackageShare('local_planner'),
-                'config',
-                [LaunchConfiguration('robot_config'), '.yaml']
+            PythonExpression([
+                "'", FindPackageShare('local_planner'), "/config/",
+                LaunchConfiguration('robot_config'), ".yaml'"
             ]),
             {
                 'pathFolder': os.path.join(local_planner_share, 'paths'),
@@ -145,15 +143,13 @@ def generate_launch_description():
         name='pathFollower',
         output='screen',
         parameters=[
-            PathJoinSubstitution([
-                FindPackageShare('local_planner'),
-                'config',
-                [LaunchConfiguration('config'), '.yaml']
+            PythonExpression([
+                "'", FindPackageShare('local_planner'), "/config/",
+                LaunchConfiguration('config'), ".yaml'"
             ]),
-            PathJoinSubstitution([
-                FindPackageShare('local_planner'),
-                'config',
-                [LaunchConfiguration('robot_config'), '.yaml']
+            PythonExpression([
+                "'", FindPackageShare('local_planner'), "/config/",
+                LaunchConfiguration('robot_config'), ".yaml'"
             ]),
             {
                 'pubSkipNum': 1,

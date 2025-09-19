@@ -91,6 +91,8 @@ int freezeStatus = 0;
 double omniDirGoalThre = 1.0;
 double goalClearRange = 0.5;
 double goalBehindRange = 0.8;
+double goalReachedThreshold = 0.5;
+bool goalReached = false;
 double goalX = 0;
 double goalY = 0;
 
@@ -257,6 +259,11 @@ void joystickHandler(const sensor_msgs::msg::Joy::ConstSharedPtr joy)
 
 void goalHandler(const geometry_msgs::msg::PointStamped::ConstSharedPtr goal)
 {
+  // Check if this is a new goal (more than 1cm difference)
+  if (fabs(goalX - goal->point.x) > 0.01 || fabs(goalY - goal->point.y) > 0.01) {
+    goalReached = false;  // Reset goal reached state for new goal
+    RCLCPP_INFO(nh->get_logger(), "New goal received: (%.2f, %.2f)", goal->point.x, goal->point.y);
+  }
   goalX = goal->point.x;
   goalY = goal->point.y;
 }
@@ -556,6 +563,7 @@ int main(int argc, char** argv)
   nh->declare_parameter<double>("omniDirGoalThre", omniDirGoalThre);
   nh->declare_parameter<double>("goalClearRange", goalClearRange);
   nh->declare_parameter<double>("goalBehindRange", goalBehindRange);
+  nh->declare_parameter<double>("goalReachedThreshold", goalReachedThreshold);
   nh->declare_parameter<double>("goalX", goalX);
   nh->declare_parameter<double>("goalY", goalY);
 
@@ -602,6 +610,7 @@ int main(int argc, char** argv)
   nh->get_parameter("omniDirGoalThre", omniDirGoalThre);
   nh->get_parameter("goalClearRange", goalClearRange);
   nh->get_parameter("goalBehindRange", goalBehindRange);
+  nh->get_parameter("goalReachedThreshold", goalReachedThreshold);
   nh->get_parameter("goalX", goalX);
   nh->get_parameter("goalY", goalY);
 
@@ -759,28 +768,41 @@ int main(int argc, char** argv)
         float relativeGoalY = (-(goalX - vehicleX) * sinVehicleYaw + (goalY - vehicleY) * cosVehicleYaw);
 
         relativeGoalDis = sqrt(relativeGoalX * relativeGoalX + relativeGoalY * relativeGoalY);
-        joyDir = atan2(relativeGoalY, relativeGoalX) * 180 / PI;
-        
-        if (fabs(joyDir) > freezeAng && relativeGoalDis < goalBehindRange) {
-          relativeGoalDis = 0;
-          joyDir = 0;
-        }
-        
-        if (fabs(joyDir) > freezeAng && freezeStatus == 0) {
-          freezeStartTime = odomTime;
-          freezeStatus = 1;
-        } else if (odomTime - freezeStartTime > freezeTime && freezeStatus == 1) {
-          freezeStatus = 2;
-        } else if (fabs(joyDir) <= freezeAng && freezeStatus == 2) {
-          freezeStatus = 0;
+
+        // Check if goal is reached
+        if (relativeGoalDis < goalReachedThreshold && !goalReached) {
+          goalReached = true;
+          RCLCPP_INFO(nh->get_logger(), "Goal reached! Distance: %.2f m", relativeGoalDis);
         }
 
-        if (!twoWayDrive) {
-          if (joyDir > 95.0) joyDir = 95.0;
-          else if (joyDir < -95.0) joyDir = -95.0;
+        if (goalReached) {
+          relativeGoalDis = 0;
+          joyDir = 0;
+        } else {
+          joyDir = atan2(relativeGoalY, relativeGoalX) * 180 / PI;
+
+          if (fabs(joyDir) > freezeAng && relativeGoalDis < goalBehindRange) {
+            relativeGoalDis = 0;
+            joyDir = 0;
+          }
+
+          if (fabs(joyDir) > freezeAng && freezeStatus == 0) {
+            freezeStartTime = odomTime;
+            freezeStatus = 1;
+          } else if (odomTime - freezeStartTime > freezeTime && freezeStatus == 1) {
+            freezeStatus = 2;
+          } else if (fabs(joyDir) <= freezeAng && freezeStatus == 2) {
+            freezeStatus = 0;
+          }
+
+          if (!twoWayDrive) {
+            if (joyDir > 95.0) joyDir = 95.0;
+            else if (joyDir < -95.0) joyDir = -95.0;
+          }
         }
       } else {
         freezeStatus = 0;
+        goalReached = false;
       }
 
       if (freezeStatus == 1 && autonomyMode) {
