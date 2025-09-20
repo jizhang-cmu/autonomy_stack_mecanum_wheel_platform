@@ -19,6 +19,7 @@
 
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/polygon_stamped.hpp>
 #include <sensor_msgs/msg/imu.h>
 
@@ -41,6 +42,10 @@
 using namespace std;
 
 const double PI = 3.1415926;
+
+double normalizeAngle(double angle) {
+  return atan2(sin(angle), cos(angle));
+}
 
 #define PLOTPATHSET 1
 
@@ -95,6 +100,9 @@ double goalReachedThreshold = 0.5;
 bool goalReached = false;
 double goalX = 0;
 double goalY = 0;
+double goalYaw = 0;
+bool hasGoalYaw = false;
+double goalYawThreshold = 0.15;
 
 float joySpeed = 0;
 float joySpeedRaw = 0;
@@ -262,13 +270,31 @@ void joystickHandler(const sensor_msgs::msg::Joy::ConstSharedPtr joy)
 
 void goalHandler(const geometry_msgs::msg::PointStamped::ConstSharedPtr goal)
 {
-  // Check if this is a new goal (more than 1cm difference)
   if (fabs(goalX - goal->point.x) > 0.01 || fabs(goalY - goal->point.y) > 0.01) {
-    goalReached = false;  // Reset goal reached state for new goal
-    RCLCPP_INFO(nh->get_logger(), "New goal received: (%.2f, %.2f)", goal->point.x, goal->point.y);
+    goalReached = false;
+    hasGoalYaw = false;
   }
   goalX = goal->point.x;
   goalY = goal->point.y;
+}
+
+void goalPoseHandler(const geometry_msgs::msg::PoseStamped::ConstSharedPtr goal)
+{
+  tf2::Quaternion q(goal->pose.orientation.x, goal->pose.orientation.y,
+                    goal->pose.orientation.z, goal->pose.orientation.w);
+  double roll, pitch, yaw;
+  tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+  if (fabs(goalX - goal->pose.position.x) > 0.01 ||
+      fabs(goalY - goal->pose.position.y) > 0.01 ||
+      fabs(goalYaw - yaw) > 0.01) {
+    goalReached = false;
+  }
+
+  goalX = goal->pose.position.x;
+  goalY = goal->pose.position.y;
+  goalYaw = yaw;
+  hasGoalYaw = true;
 }
 
 void speedHandler(const std_msgs::msg::Float32::ConstSharedPtr speed)
@@ -577,6 +603,7 @@ int main(int argc, char** argv)
   nh->declare_parameter<double>("goalClearRange", goalClearRange);
   nh->declare_parameter<double>("goalBehindRange", goalBehindRange);
   nh->declare_parameter<double>("goalReachedThreshold", goalReachedThreshold);
+  nh->declare_parameter<double>("goalYawThreshold", goalYawThreshold);
   nh->declare_parameter<double>("goalX", goalX);
   nh->declare_parameter<double>("goalY", goalY);
 
@@ -624,6 +651,7 @@ int main(int argc, char** argv)
   nh->get_parameter("goalClearRange", goalClearRange);
   nh->get_parameter("goalBehindRange", goalBehindRange);
   nh->get_parameter("goalReachedThreshold", goalReachedThreshold);
+  nh->get_parameter("goalYawThreshold", goalYawThreshold);
   nh->get_parameter("goalX", goalX);
   nh->get_parameter("goalY", goalY);
 
@@ -636,6 +664,8 @@ int main(int argc, char** argv)
   auto subJoystick = nh->create_subscription<sensor_msgs::msg::Joy>("/joy", 5, joystickHandler);
 
   auto subGoal = nh->create_subscription<geometry_msgs::msg::PointStamped> ("/way_point", 5, goalHandler);
+
+  auto subGoalPose = nh->create_subscription<geometry_msgs::msg::PoseStamped> ("/goal_pose", 5, goalPoseHandler);
 
   auto subSpeed = nh->create_subscription<std_msgs::msg::Float32>("/speed", 5, speedHandler);
 
@@ -786,18 +816,27 @@ int main(int argc, char** argv)
 
         relativeGoalDis = sqrt(relativeGoalX * relativeGoalX + relativeGoalY * relativeGoalY);
 
-        // Check if goal is reached
-        if (relativeGoalDis < goalReachedThreshold && !goalReached) {
+        bool positionReached = relativeGoalDis < goalReachedThreshold;
+        bool orientationReached = true;
+
+        if (hasGoalYaw) {
+          double yawError = normalizeAngle(goalYaw - vehicleYaw);
+          orientationReached = fabs(yawError) < goalYawThreshold;
+        }
+
+        if (positionReached && orientationReached && !goalReached) {
           goalReached = true;
           goalReachedMsg.data = true;
           pubGoalReached->publish(goalReachedMsg);
-          RCLCPP_INFO(nh->get_logger(), "Goal reached! Distance: %.2f m", relativeGoalDis);
         }
 
         if (goalReached) {
           relativeGoalDis = 0;
           joyDir = 0;
-        } else {
+        } else if (positionReached && hasGoalYaw && !orientationReached) {
+          relativeGoalDis = 0;
+          joyDir = 0;
+        } else if (!positionReached) {
           joyDir = atan2(relativeGoalY, relativeGoalX) * 180 / PI;
 
           if (fabs(joyDir) > freezeAng && relativeGoalDis < goalBehindRange) {
@@ -977,6 +1016,7 @@ int main(int argc, char** argv)
           selectedGroupID = selectedGroupID % groupNum;
           int selectedPathLength = startPaths[selectedGroupID]->points.size();
           path.poses.resize(selectedPathLength);
+          int actualPathLength = 0;
           for (int i = 0; i < selectedPathLength; i++) {
             float x = startPaths[selectedGroupID]->points[i].x;
             float y = startPaths[selectedGroupID]->points[i].y;
@@ -987,10 +1027,22 @@ int main(int argc, char** argv)
               path.poses[i].pose.position.x = pathScale * (cos(rotAng) * x - sin(rotAng) * y);
               path.poses[i].pose.position.y = pathScale * (sin(rotAng) * x + cos(rotAng) * y);
               path.poses[i].pose.position.z = pathScale * z;
+              actualPathLength = i + 1;
             } else {
               path.poses.resize(i);
+              actualPathLength = i;
               break;
             }
+          }
+
+          if (hasGoalYaw && actualPathLength > 0) {
+            // Pass the goal yaw in world frame
+            tf2::Quaternion q;
+            q.setRPY(0, 0, goalYaw);
+            path.poses[actualPathLength - 1].pose.orientation.x = q.x();
+            path.poses[actualPathLength - 1].pose.orientation.y = q.y();
+            path.poses[actualPathLength - 1].pose.orientation.z = q.z();
+            path.poses[actualPathLength - 1].pose.orientation.w = q.w();
           }
 
           path.header.stamp = rclcpp::Time(static_cast<uint64_t>(odomTime * 1e9));
@@ -1064,6 +1116,15 @@ int main(int argc, char** argv)
         path.poses[0].pose.position.x = 0;
         path.poses[0].pose.position.y = 0;
         path.poses[0].pose.position.z = 0;
+
+        if (hasGoalYaw) {
+          tf2::Quaternion q;
+          q.setRPY(0, 0, goalYaw);
+          path.poses[0].pose.orientation.x = q.x();
+          path.poses[0].pose.orientation.y = q.y();
+          path.poses[0].pose.orientation.z = q.z();
+          path.poses[0].pose.orientation.w = q.w();
+        }
 
         path.header.stamp = rclcpp::Time(static_cast<uint64_t>(odomTime * 1e9));
         path.header.frame_id = "vehicle";

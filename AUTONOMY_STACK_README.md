@@ -13,7 +13,8 @@ export ROBOT_CONFIG_PATH="mechanum_drive"  # or "unitree/unitree_g1" or "unitree
 
 | Topic | Type | Description |
 |-------|------|-------------|
-| `/way_point` | `geometry_msgs/PointStamped` | Send navigation goal |
+| `/way_point` | `geometry_msgs/PointStamped` | Send navigation goal (position only) |
+| `/goal_pose` | `geometry_msgs/PoseStamped` | Send goal with orientation |
 | `/cancel_goal` | `std_msgs/Bool` | Cancel current goal (data: true) |
 | `/joy` | `sensor_msgs/Joy` | Joystick input |
 | `/navigation_boundary` | `geometry_msgs/PolygonStamped` | Set navigation boundaries |

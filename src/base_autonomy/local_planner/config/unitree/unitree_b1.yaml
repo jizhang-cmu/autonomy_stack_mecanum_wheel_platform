@@ -35,12 +35,14 @@ localPlanner:
     goalClearRange: 0.6
     goalBehindRange: 0.8
     goalReachedThreshold: 0.5
+    goalYawThreshold: 0.15
 
 pathFollower:
   ros__parameters:
     # Control parameters
     lookAheadDis: 0.5
     maxAccel: 2.0
+    goalYawGain: 2.0
 
     # Slow down threshold
     slowDwnDisThre: 0.875

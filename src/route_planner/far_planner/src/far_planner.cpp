@@ -28,6 +28,7 @@ void FARMaster::Init() {
   terrain_sub_        = nh_->create_subscription<sensor_msgs::msg::PointCloud2>("/terrain_cloud", 1, std::bind(&FARMaster::TerrainCallBack, this, std::placeholders::_1));
   scan_sub_           = nh_->create_subscription<sensor_msgs::msg::PointCloud2>("/scan_cloud", 5, std::bind(&FARMaster::ScanCallBack, this, std::placeholders::_1));
   waypoint_sub_       = nh_->create_subscription<geometry_msgs::msg::PointStamped>("/goal_point", 1, std::bind(&FARMaster::WaypointCallBack, this, std::placeholders::_1));
+  goal_pose_sub_      = nh_->create_subscription<geometry_msgs::msg::PoseStamped>("/goal_pose", 1, std::bind(&FARMaster::GoalPoseCallBack, this, std::placeholders::_1));
   terrain_local_sub_  = nh_->create_subscription<sensor_msgs::msg::PointCloud2>("/terrain_local_cloud", 1, std::bind(&FARMaster::TerrainLocalCallBack, this, std::placeholders::_1));
   joy_command_sub_    = nh_->create_subscription<sensor_msgs::msg::Joy>("/joy", 5, std::bind(&FARMaster::JoyCommandCallBack, this, std::placeholders::_1));
   update_command_sub_ = nh_->create_subscription<std_msgs::msg::Bool>("/update_visibility_graph", 5, std::bind(&FARMaster::UpdateCommandCallBack, this, std::placeholders::_1));
@@ -193,7 +194,7 @@ void FARMaster::MainLoopCallBack() {
   contour_graph_.UpdateContourGraph(odom_node_ptr_, realworld_contour_);
   if (is_graph_init_) {
     if (!FARUtil::IsDebug) printf("\033[2K");
-    std::cout<<"    "<<"Local V-Graph Updated. Number of local vertices: "<<ContourGraph::contour_graph_.size()<<std::endl;
+    // std::cout<<"    "<<"Local V-Graph Updated. Number of local vertices: "<<ContourGraph::contour_graph_.size()<<std::endl;
   }
   /* Adjust heights with terrain */
   map_handler_.AdjustCTNodeHeight(ContourGraph::contour_graph_);
@@ -215,12 +216,12 @@ void FARMaster::MainLoopCallBack() {
   }
   if (is_graph_init_) {
     if (!FARUtil::IsDebug) printf("\033[2K");
-    std::cout<<"    "<< "Number of new vertices adding to global V-Graph: "<< new_nodes_.size()<<std::endl;
+    // std::cout<<"    "<< "Number of new vertices adding to global V-Graph: "<< new_nodes_.size()<<std::endl;
   }
   /* Graph Updating */
   graph_manager_.UpdateNavGraph(new_nodes_, is_stop_update_, clear_nodes_);
 
-  runtimer_.data = FARUtil::Timer.end_time("Total V-Graph Update", is_graph_init_) / 1000.f; // Unit: second
+  runtimer_.data = FARUtil::Timer.end_time("Total V-Graph Update", false) / 1000.f; // Unit: second
   // runtimer_.data = FARUtil::Timer.end_time("Total V-Graph Update", is_graph_init_); // Unit: ms
   runtime_pub_->publish(runtimer_);
 
@@ -228,7 +229,7 @@ void FARMaster::MainLoopCallBack() {
   nav_graph_ = graph_manager_.GetNavGraph();
   if (is_graph_init_) {
     if (!FARUtil::IsDebug) printf("\033[2K");
-    std::cout<<"    "<<"Global V-Graph Updated. Number of global vertices: "<<nav_graph_.size()<<std::endl;
+    // std::cout<<"    "<<"Global V-Graph Updated. Number of global vertices: "<<nav_graph_.size()<<std::endl;
   }
   contour_graph_.ExtractGlobalContours();      // Global Polygon Update
   graph_planner_.UpdaetVGraph(nav_graph_);     // Graph Planner Update
@@ -276,10 +277,10 @@ void FARMaster::PlanningCallBack() {
   if (goal_ptr == NULL) {
     /* Graph Traversablity Update */
     if (!FARUtil::IsDebug) printf("\033[2K");
-    std::cout<<"    "<<"Adding Goal to V-Graph "<<"Time: "<<0.f<<"ms"<<std::endl;
+    // std::cout<<"    "<<"Adding Goal to V-Graph "<<"Time: "<<0.f<<"ms"<<std::endl;
     graph_planner_.UpdateGraphTraverability(odom_node_ptr_, NULL);
     if (!FARUtil::IsDebug) printf("\033[2K");
-    std::cout<<"    "<<"Path Search "<<"Time: "<<0.f<<"ms"<<std::endl;
+    // std::cout<<"    "<<"Path Search "<<"Time: "<<0.f<<"ms"<<std::endl;
   } else { 
     // Update goal postion with nearby terrain cloud
     const Point3D ori_p = graph_planner_.GetOriginNodePos(true);
@@ -295,7 +296,7 @@ void FARMaster::PlanningCallBack() {
     graph_planner_.UpdateGoalNavNodeConnects(goal_ptr); 
     graph_planner_.UpdaetVGraph(graph_manager_.GetNavGraph());
     if (!FARUtil::IsDebug) printf("\033[2K");
-    FARUtil::Timer.end_time("Adding Goal to V-Graph");
+    FARUtil::Timer.end_time("Adding Goal to V-Graph", false);
 
     // Update v-graph traversibility 
     FARUtil::Timer.start_time("Path Search");
@@ -345,7 +346,7 @@ void FARMaster::PlanningCallBack() {
       FARUtil::Timer.end_time("Overall_executing", false);
     }
 
-    plan_timer_.data = FARUtil::Timer.end_time("Path Search");
+    plan_timer_.data = FARUtil::Timer.end_time("Path Search", false);
     planning_time_pub_->publish(plan_timer_);
   }
 }
@@ -810,7 +811,25 @@ void FARMaster::WaypointCallBack(const geometry_msgs::msg::PointStamped& route_g
   const std::string goal_frame = route_goal.header.frame_id;
   if (!FARUtil::IsSameFrameID(goal_frame, master_params_.world_frame)) {
     if (FARUtil::IsDebug) RCLCPP_WARN_ONCE(nh_->get_logger(), "FARMaster: waypoint published is not on world frame!");
-    FARUtil::TransformPoint3DFrame(goal_frame, master_params_.world_frame, tf_buffer_, goal_p); 
+    FARUtil::TransformPoint3DFrame(goal_frame, master_params_.world_frame, tf_buffer_, goal_p);
+  }
+  graph_planner_.UpdateGoal(goal_p);
+  FARUtil::Timer.start_time("Overall_executing", true);
+  // visualize original goal
+  planner_viz_.VizPoint3D(goal_p, "original_goal", VizColor::RED, 1.5);
+}
+
+void FARMaster::GoalPoseCallBack(const geometry_msgs::msg::PoseStamped& goal_pose) {
+  if (!is_graph_init_) {
+    if (FARUtil::IsDebug) RCLCPP_WARN(nh_->get_logger(),"FARMaster: wait for v-graph to init before sending any goals");
+    return;
+  }
+  // Extract position from PoseStamped (ignoring orientation for path planning)
+  Point3D goal_p(goal_pose.pose.position.x, goal_pose.pose.position.y, goal_pose.pose.position.z);
+  const std::string goal_frame = goal_pose.header.frame_id;
+  if (!FARUtil::IsSameFrameID(goal_frame, master_params_.world_frame)) {
+    if (FARUtil::IsDebug) RCLCPP_WARN_ONCE(nh_->get_logger(), "FARMaster: goal_pose published is not on world frame!");
+    FARUtil::TransformPoint3DFrame(goal_frame, master_params_.world_frame, tf_buffer_, goal_p);
   }
   graph_planner_.UpdateGoal(goal_p);
   FARUtil::Timer.start_time("Overall_executing", true);

@@ -166,7 +166,7 @@ def generate_launch_description():
                 'inclThre': 45.0,
                 'stopTime': 5.0,
                 'noRotAtStop': False,
-                'noRotAtGoal': True,
+                'noRotAtGoal': False,
                 'autonomyMode': LaunchConfiguration('autonomyMode'),
                 'joyToSpeedDelay': LaunchConfiguration('joyToSpeedDelay'),
             }

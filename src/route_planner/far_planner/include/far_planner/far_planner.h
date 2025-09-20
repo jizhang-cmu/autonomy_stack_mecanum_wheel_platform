@@ -52,6 +52,7 @@ private:
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr terrain_local_sub_;
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr scan_sub_;
     rclcpp::Subscription<geometry_msgs::msg::PointStamped>::SharedPtr waypoint_sub_;
+    rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pose_sub_;
     rclcpp::Subscription<std_msgs::msg::String>::SharedPtr read_command_sub_, save_command_sub_;
 
     rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr goal_pub_;
@@ -206,6 +207,7 @@ private:
 
     void ScanCallBack(const sensor_msgs::msg::PointCloud2::SharedPtr scan_pc);
     void WaypointCallBack(const geometry_msgs::msg::PointStamped& route_goal);
+    void GoalPoseCallBack(const geometry_msgs::msg::PoseStamped& goal_pose);
 
     void ExtractDynamicObsFromScan(const PointCloudPtr& scanCloudIn, 
                                    const PointCloudPtr& obsCloudIn,
