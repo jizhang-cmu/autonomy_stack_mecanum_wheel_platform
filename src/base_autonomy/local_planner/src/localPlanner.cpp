@@ -100,6 +100,9 @@ float joySpeed = 0;
 float joySpeedRaw = 0;
 float joyDir = 0;
 
+std_msgs::msg::Bool goalReachedMsg;
+rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pubGoalReached;
+
 const int pathNum = 343;
 const int groupNum = 7;
 float gridVoxelSize = 0.02;
@@ -341,6 +344,8 @@ void cancelGoalHandler(const std_msgs::msg::Bool::ConstSharedPtr cancelMsg)
 {
   if (cancelMsg->data && autonomyMode) {
     goalReached = true;  // Mark goal as reached to stop pursuit
+    goalReachedMsg.data = false;  // Goal was cancelled, not reached
+    pubGoalReached->publish(goalReachedMsg);
     RCLCPP_INFO(nh->get_logger(), "Goal cancelled by user");
   }
 }
@@ -648,6 +653,8 @@ int main(int argc, char** argv)
   auto pubPath = nh->create_publisher<nav_msgs::msg::Path>("/path", 5);
   nav_msgs::msg::Path path;
 
+  pubGoalReached = nh->create_publisher<std_msgs::msg::Bool>("/goal_reached", 5);
+
   #if PLOTPATHSET == 1
   auto pubFreePaths = nh->create_publisher<sensor_msgs::msg::PointCloud2>("/free_paths", 2);
   #endif
@@ -782,6 +789,8 @@ int main(int argc, char** argv)
         // Check if goal is reached
         if (relativeGoalDis < goalReachedThreshold && !goalReached) {
           goalReached = true;
+          goalReachedMsg.data = true;
+          pubGoalReached->publish(goalReachedMsg);
           RCLCPP_INFO(nh->get_logger(), "Goal reached! Distance: %.2f m", relativeGoalDis);
         }
 

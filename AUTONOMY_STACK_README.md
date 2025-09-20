@@ -29,6 +29,7 @@ export ROBOT_CONFIG_PATH="mechanum_drive"  # or "unitree/unitree_g1" or "unitree
 | `/terrain_map_ext` | `sensor_msgs/PointCloud2` | Extended terrain map |
 | `/path` | `nav_msgs/Path` | Local path being followed |
 | `/cmd_vel` | `geometry_msgs/Twist` | Velocity commands to motors |
+| `/goal_reached` | `std_msgs/Bool` | True when goal reached, false when cancelled/new goal |
 
 ### Map Topics
 
