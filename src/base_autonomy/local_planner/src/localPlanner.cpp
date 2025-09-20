@@ -337,6 +337,14 @@ void checkObstacleHandler(const std_msgs::msg::Bool::ConstSharedPtr checkObs)
   }
 }
 
+void cancelGoalHandler(const std_msgs::msg::Bool::ConstSharedPtr cancelMsg)
+{
+  if (cancelMsg->data && autonomyMode) {
+    goalReached = true;  // Mark goal as reached to stop pursuit
+    RCLCPP_INFO(nh->get_logger(), "Goal cancelled by user");
+  }
+}
+
 int readPlyHeader(FILE *filePtr)
 {
   char str[50];
@@ -631,6 +639,8 @@ int main(int argc, char** argv)
   auto subAddedObstacles = nh->create_subscription<sensor_msgs::msg::PointCloud2>("/added_obstacles", 5, addedObstaclesHandler);
 
   auto subCheckObstacle = nh->create_subscription<std_msgs::msg::Bool>("/check_obstacle", 5, checkObstacleHandler);
+
+  auto subCancelGoal = nh->create_subscription<std_msgs::msg::Bool>("/cancel_goal", 5, cancelGoalHandler);
 
   auto pubSlowDown = nh->create_publisher<std_msgs::msg::Int8> ("/slow_down", 5);
   std_msgs::msg::Int8 slow;
