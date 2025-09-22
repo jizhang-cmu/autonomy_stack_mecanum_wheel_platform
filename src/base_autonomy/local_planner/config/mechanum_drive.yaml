@@ -4,6 +4,22 @@ sensorMountingOffsets:
     sensorOffsetY: 0.0
     sensorOffsetZ: 0.0
 
+# SLAM sensor configuration
+feature_extraction_node:
+  ros__parameters:
+    lidar_flip: false
+    blindFront: 0.1
+    blindBack: -0.2
+    blindLeft: 0.1
+    blindRight: -0.1
+    blindDiskLow: -0.05
+    blindDiskHigh: 0.05
+    blindDiskRadius: 0.4
+
+imu_preintegration_node:
+  ros__parameters:
+    lidar_flip: false
+
 localPlanner:
   ros__parameters:
     # Vehicle dimensions
@@ -17,12 +33,15 @@ localPlanner:
     # Goal tolerances
     goalClearRange: 0.35
     goalBehindRange: 0.35
+    goalReachedThreshold: 0.3
+    goalYawThreshold: 0.1
 
 pathFollower:
   ros__parameters:
     # Control parameters
     lookAheadDis: 0.5
     maxAccel: 2.0
+    goalYawGain: 1.5
 
     # Slow down threshold
     slowDwnDisThre: 0.875

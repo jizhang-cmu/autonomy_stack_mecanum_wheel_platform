@@ -11,6 +11,7 @@
 #include <sensor_msgs/msg/joy.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <rviz_default_plugins/tools/pose/pose_tool.hpp>
 
 #include <rviz_common/display_context.hpp>
@@ -24,6 +25,7 @@ namespace properties
 {
 class StringProperty;
 class QosProfileProperty;
+class BoolProperty;
 }  // namespace properties
 }  // namespace rviz_common
 
@@ -48,14 +50,18 @@ private Q_SLOTS:
 
 private:
   float vehicle_z;
+  bool use_pose_topic_;
+
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr sub_;
   rclcpp::Publisher<geometry_msgs::msg::PointStamped>::SharedPtr pub_;
+  rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_pose_;
   rclcpp::Publisher<sensor_msgs::msg::Joy>::SharedPtr pub_joy_;
-  
+
   rclcpp::Clock::SharedPtr clock_;
-  
+
   rviz_common::properties::StringProperty * topic_property_;
   rviz_common::properties::QosProfileProperty * qos_profile_property_;
+  rviz_common::properties::BoolProperty * use_pose_property_;
 
   rclcpp::QoS qos_profile_;
 };

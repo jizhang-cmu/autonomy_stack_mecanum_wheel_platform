@@ -19,6 +19,7 @@
 
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <geometry_msgs/msg/point_stamped.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/polygon_stamped.hpp>
 #include <sensor_msgs/msg/imu.h>
 
@@ -41,6 +42,10 @@
 using namespace std;
 
 const double PI = 3.1415926;
+
+double normalizeAngle(double angle) {
+  return atan2(sin(angle), cos(angle));
+}
 
 #define PLOTPATHSET 1
 
@@ -91,12 +96,20 @@ int freezeStatus = 0;
 double omniDirGoalThre = 1.0;
 double goalClearRange = 0.5;
 double goalBehindRange = 0.8;
+double goalReachedThreshold = 0.5;
+bool goalReached = false;
 double goalX = 0;
 double goalY = 0;
+double goalYaw = 0;
+bool hasGoalYaw = false;
+double goalYawThreshold = 0.15;
 
 float joySpeed = 0;
 float joySpeedRaw = 0;
 float joyDir = 0;
+
+std_msgs::msg::Bool goalReachedMsg;
+rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pubGoalReached;
 
 const int pathNum = 343;
 const int groupNum = 7;
@@ -257,8 +270,31 @@ void joystickHandler(const sensor_msgs::msg::Joy::ConstSharedPtr joy)
 
 void goalHandler(const geometry_msgs::msg::PointStamped::ConstSharedPtr goal)
 {
+  if (fabs(goalX - goal->point.x) > 0.01 || fabs(goalY - goal->point.y) > 0.01) {
+    goalReached = false;
+    hasGoalYaw = false;
+  }
   goalX = goal->point.x;
   goalY = goal->point.y;
+}
+
+void goalPoseHandler(const geometry_msgs::msg::PoseStamped::ConstSharedPtr goal)
+{
+  tf2::Quaternion q(goal->pose.orientation.x, goal->pose.orientation.y,
+                    goal->pose.orientation.z, goal->pose.orientation.w);
+  double roll, pitch, yaw;
+  tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+  if (fabs(goalX - goal->pose.position.x) > 0.01 ||
+      fabs(goalY - goal->pose.position.y) > 0.01 ||
+      fabs(goalYaw - yaw) > 0.01) {
+    goalReached = false;
+  }
+
+  goalX = goal->pose.position.x;
+  goalY = goal->pose.position.y;
+  goalYaw = yaw;
+  hasGoalYaw = true;
 }
 
 void speedHandler(const std_msgs::msg::Float32::ConstSharedPtr speed)
@@ -327,6 +363,17 @@ void checkObstacleHandler(const std_msgs::msg::Bool::ConstSharedPtr checkObs)
   double checkObsTime = nh->now().seconds();
   if (autonomyMode && checkObsTime - joyTime > joyToCheckObstacleDelay) {
     checkObstacle = checkObs->data;
+  }
+}
+
+void cancelGoalHandler(const std_msgs::msg::Bool::ConstSharedPtr cancelMsg)
+{
+  if (cancelMsg->data && autonomyMode) {
+    goalReached = true;
+    hasGoalYaw = false;
+    goalReachedMsg.data = false;
+    pubGoalReached->publish(goalReachedMsg);
+    RCLCPP_INFO(nh->get_logger(), "Goal cancelled by user");
   }
 }
 
@@ -556,6 +603,8 @@ int main(int argc, char** argv)
   nh->declare_parameter<double>("omniDirGoalThre", omniDirGoalThre);
   nh->declare_parameter<double>("goalClearRange", goalClearRange);
   nh->declare_parameter<double>("goalBehindRange", goalBehindRange);
+  nh->declare_parameter<double>("goalReachedThreshold", goalReachedThreshold);
+  nh->declare_parameter<double>("goalYawThreshold", goalYawThreshold);
   nh->declare_parameter<double>("goalX", goalX);
   nh->declare_parameter<double>("goalY", goalY);
 
@@ -602,6 +651,8 @@ int main(int argc, char** argv)
   nh->get_parameter("omniDirGoalThre", omniDirGoalThre);
   nh->get_parameter("goalClearRange", goalClearRange);
   nh->get_parameter("goalBehindRange", goalBehindRange);
+  nh->get_parameter("goalReachedThreshold", goalReachedThreshold);
+  nh->get_parameter("goalYawThreshold", goalYawThreshold);
   nh->get_parameter("goalX", goalX);
   nh->get_parameter("goalY", goalY);
 
@@ -615,6 +666,8 @@ int main(int argc, char** argv)
 
   auto subGoal = nh->create_subscription<geometry_msgs::msg::PointStamped> ("/way_point", 5, goalHandler);
 
+  auto subGoalPose = nh->create_subscription<geometry_msgs::msg::PoseStamped> ("/goal_pose", 5, goalPoseHandler);
+
   auto subSpeed = nh->create_subscription<std_msgs::msg::Float32>("/speed", 5, speedHandler);
 
   auto subBoundary = nh->create_subscription<geometry_msgs::msg::PolygonStamped>("/navigation_boundary", 5, boundaryHandler);
@@ -623,11 +676,15 @@ int main(int argc, char** argv)
 
   auto subCheckObstacle = nh->create_subscription<std_msgs::msg::Bool>("/check_obstacle", 5, checkObstacleHandler);
 
+  auto subCancelGoal = nh->create_subscription<std_msgs::msg::Bool>("/cancel_goal", 5, cancelGoalHandler);
+
   auto pubSlowDown = nh->create_publisher<std_msgs::msg::Int8> ("/slow_down", 5);
   std_msgs::msg::Int8 slow;
 
   auto pubPath = nh->create_publisher<nav_msgs::msg::Path>("/path", 5);
   nav_msgs::msg::Path path;
+
+  pubGoalReached = nh->create_publisher<std_msgs::msg::Bool>("/goal_reached", 5);
 
   #if PLOTPATHSET == 1
   auto pubFreePaths = nh->create_publisher<sensor_msgs::msg::PointCloud2>("/free_paths", 2);
@@ -759,28 +816,52 @@ int main(int argc, char** argv)
         float relativeGoalY = (-(goalX - vehicleX) * sinVehicleYaw + (goalY - vehicleY) * cosVehicleYaw);
 
         relativeGoalDis = sqrt(relativeGoalX * relativeGoalX + relativeGoalY * relativeGoalY);
-        joyDir = atan2(relativeGoalY, relativeGoalX) * 180 / PI;
-        
-        if (fabs(joyDir) > freezeAng && relativeGoalDis < goalBehindRange) {
-          relativeGoalDis = 0;
-          joyDir = 0;
-        }
-        
-        if (fabs(joyDir) > freezeAng && freezeStatus == 0) {
-          freezeStartTime = odomTime;
-          freezeStatus = 1;
-        } else if (odomTime - freezeStartTime > freezeTime && freezeStatus == 1) {
-          freezeStatus = 2;
-        } else if (fabs(joyDir) <= freezeAng && freezeStatus == 2) {
-          freezeStatus = 0;
+
+        bool positionReached = relativeGoalDis < goalReachedThreshold;
+        bool orientationReached = true;
+
+        if (hasGoalYaw) {
+          double yawError = normalizeAngle(goalYaw - vehicleYaw);
+          orientationReached = fabs(yawError) < goalYawThreshold;
         }
 
-        if (!twoWayDrive) {
-          if (joyDir > 95.0) joyDir = 95.0;
-          else if (joyDir < -95.0) joyDir = -95.0;
+        if (positionReached && orientationReached && !goalReached) {
+          goalReached = true;
+          goalReachedMsg.data = true;
+          pubGoalReached->publish(goalReachedMsg);
+        }
+
+        if (goalReached) {
+          relativeGoalDis = 0;
+          joyDir = 0;
+        } else if (positionReached && hasGoalYaw && !orientationReached) {
+          relativeGoalDis = 0;
+          joyDir = 0;
+        } else if (!positionReached) {
+          joyDir = atan2(relativeGoalY, relativeGoalX) * 180 / PI;
+
+          if (fabs(joyDir) > freezeAng && relativeGoalDis < goalBehindRange) {
+            relativeGoalDis = 0;
+            joyDir = 0;
+          }
+
+          if (fabs(joyDir) > freezeAng && freezeStatus == 0) {
+            freezeStartTime = odomTime;
+            freezeStatus = 1;
+          } else if (odomTime - freezeStartTime > freezeTime && freezeStatus == 1) {
+            freezeStatus = 2;
+          } else if (fabs(joyDir) <= freezeAng && freezeStatus == 2) {
+            freezeStatus = 0;
+          }
+
+          if (!twoWayDrive) {
+            if (joyDir > 95.0) joyDir = 95.0;
+            else if (joyDir < -95.0) joyDir = -95.0;
+          }
         }
       } else {
         freezeStatus = 0;
+        goalReached = false;
       }
 
       if (freezeStatus == 1 && autonomyMode) {
@@ -936,6 +1017,7 @@ int main(int argc, char** argv)
           selectedGroupID = selectedGroupID % groupNum;
           int selectedPathLength = startPaths[selectedGroupID]->points.size();
           path.poses.resize(selectedPathLength);
+          int actualPathLength = 0;
           for (int i = 0; i < selectedPathLength; i++) {
             float x = startPaths[selectedGroupID]->points[i].x;
             float y = startPaths[selectedGroupID]->points[i].y;
@@ -946,10 +1028,27 @@ int main(int argc, char** argv)
               path.poses[i].pose.position.x = pathScale * (cos(rotAng) * x - sin(rotAng) * y);
               path.poses[i].pose.position.y = pathScale * (sin(rotAng) * x + cos(rotAng) * y);
               path.poses[i].pose.position.z = pathScale * z;
+              actualPathLength = i + 1;
             } else {
               path.poses.resize(i);
+              actualPathLength = i;
               break;
             }
+          }
+
+          if (hasGoalYaw && actualPathLength > 0) {
+            // Pass the goal yaw in world frame
+            tf2::Quaternion q;
+            q.setRPY(0, 0, goalYaw);
+            path.poses[actualPathLength - 1].pose.orientation.x = q.x();
+            path.poses[actualPathLength - 1].pose.orientation.y = q.y();
+            path.poses[actualPathLength - 1].pose.orientation.z = q.z();
+            path.poses[actualPathLength - 1].pose.orientation.w = q.w();
+          } else {
+            path.poses[actualPathLength - 1].pose.orientation.x = 0;
+            path.poses[actualPathLength - 1].pose.orientation.y = 0;
+            path.poses[actualPathLength - 1].pose.orientation.z = 0;
+            path.poses[actualPathLength - 1].pose.orientation.w = 0;
           }
 
           path.header.stamp = rclcpp::Time(static_cast<uint64_t>(odomTime * 1e9));
@@ -1023,6 +1122,10 @@ int main(int argc, char** argv)
         path.poses[0].pose.position.x = 0;
         path.poses[0].pose.position.y = 0;
         path.poses[0].pose.position.z = 0;
+        path.poses[0].pose.orientation.x = 0;
+        path.poses[0].pose.orientation.y = 0;
+        path.poses[0].pose.orientation.z = 0;
+        path.poses[0].pose.orientation.w = 0;
 
         path.header.stamp = rclcpp::Time(static_cast<uint64_t>(odomTime * 1e9));
         path.header.frame_id = "vehicle";
