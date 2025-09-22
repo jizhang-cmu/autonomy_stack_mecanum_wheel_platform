@@ -369,8 +369,9 @@ void checkObstacleHandler(const std_msgs::msg::Bool::ConstSharedPtr checkObs)
 void cancelGoalHandler(const std_msgs::msg::Bool::ConstSharedPtr cancelMsg)
 {
   if (cancelMsg->data && autonomyMode) {
-    goalReached = true;  // Mark goal as reached to stop pursuit
-    goalReachedMsg.data = false;  // Goal was cancelled, not reached
+    goalReached = true;
+    hasGoalYaw = false;
+    goalReachedMsg.data = false;
     pubGoalReached->publish(goalReachedMsg);
     RCLCPP_INFO(nh->get_logger(), "Goal cancelled by user");
   }
@@ -1043,6 +1044,11 @@ int main(int argc, char** argv)
             path.poses[actualPathLength - 1].pose.orientation.y = q.y();
             path.poses[actualPathLength - 1].pose.orientation.z = q.z();
             path.poses[actualPathLength - 1].pose.orientation.w = q.w();
+          } else {
+            path.poses[actualPathLength - 1].pose.orientation.x = 0;
+            path.poses[actualPathLength - 1].pose.orientation.y = 0;
+            path.poses[actualPathLength - 1].pose.orientation.z = 0;
+            path.poses[actualPathLength - 1].pose.orientation.w = 0;
           }
 
           path.header.stamp = rclcpp::Time(static_cast<uint64_t>(odomTime * 1e9));
@@ -1116,15 +1122,10 @@ int main(int argc, char** argv)
         path.poses[0].pose.position.x = 0;
         path.poses[0].pose.position.y = 0;
         path.poses[0].pose.position.z = 0;
-
-        if (hasGoalYaw) {
-          tf2::Quaternion q;
-          q.setRPY(0, 0, goalYaw);
-          path.poses[0].pose.orientation.x = q.x();
-          path.poses[0].pose.orientation.y = q.y();
-          path.poses[0].pose.orientation.z = q.z();
-          path.poses[0].pose.orientation.w = q.w();
-        }
+        path.poses[0].pose.orientation.x = 0;
+        path.poses[0].pose.orientation.y = 0;
+        path.poses[0].pose.orientation.z = 0;
+        path.poses[0].pose.orientation.w = 0;
 
         path.header.stamp = rclcpp::Time(static_cast<uint64_t>(odomTime * 1e9));
         path.header.frame_id = "vehicle";
