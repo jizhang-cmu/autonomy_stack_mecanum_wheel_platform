@@ -270,10 +270,6 @@ void joystickHandler(const sensor_msgs::msg::Joy::ConstSharedPtr joy)
 
 void goalHandler(const geometry_msgs::msg::PointStamped::ConstSharedPtr goal)
 {
-  if (fabs(goalX - goal->point.x) > 0.01 || fabs(goalY - goal->point.y) > 0.01) {
-    goalReached = false;
-    hasGoalYaw = false;
-  }
   goalX = goal->point.x;
   goalY = goal->point.y;
 }
@@ -285,12 +281,7 @@ void goalPoseHandler(const geometry_msgs::msg::PoseStamped::ConstSharedPtr goal)
   double roll, pitch, yaw;
   tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
-  if (fabs(goalX - goal->pose.position.x) > 0.01 ||
-      fabs(goalY - goal->pose.position.y) > 0.01 ||
-      fabs(goalYaw - yaw) > 0.01) {
-    goalReached = false;
-  }
-
+  goalReached = false;
   goalX = goal->pose.position.x;
   goalY = goal->pose.position.y;
   goalYaw = yaw;
