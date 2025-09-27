@@ -276,16 +276,23 @@ void goalHandler(const geometry_msgs::msg::PointStamped::ConstSharedPtr goal)
 
 void goalPoseHandler(const geometry_msgs::msg::PoseStamped::ConstSharedPtr goal)
 {
-  tf2::Quaternion q(goal->pose.orientation.x, goal->pose.orientation.y,
-                    goal->pose.orientation.z, goal->pose.orientation.w);
-  double roll, pitch, yaw;
-  tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
-
   goalReached = false;
   goalX = goal->pose.position.x;
   goalY = goal->pose.position.y;
-  goalYaw = yaw;
-  hasGoalYaw = true;
+
+  // Check if quaternion is all zeros (ignore orientation)
+  if (goal->pose.orientation.x == 0 && goal->pose.orientation.y == 0 &&
+      goal->pose.orientation.z == 0 && goal->pose.orientation.w == 0) {
+    hasGoalYaw = false;
+    goalYaw = 0;
+  } else {
+    tf2::Quaternion q(goal->pose.orientation.x, goal->pose.orientation.y,
+                      goal->pose.orientation.z, goal->pose.orientation.w);
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    goalYaw = yaw;
+    hasGoalYaw = true;
+  }
 }
 
 void speedHandler(const std_msgs::msg::Float32::ConstSharedPtr speed)
