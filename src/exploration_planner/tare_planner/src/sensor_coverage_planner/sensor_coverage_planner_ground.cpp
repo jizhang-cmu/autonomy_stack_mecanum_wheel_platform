@@ -112,6 +112,7 @@ void SensorCoveragePlanner3D::ReadParameters() {
   this->declare_parameter<int>("kLocalPathOptimizationItrMax", 10);
 
   // planning_env
+  this->declare_parameter<bool>("kUseFrontier", true);
   this->declare_parameter<double>("kSurfaceCloudDwzLeafSize", 0.2);
   this->declare_parameter<double>("kCollisionCloudDwzLeafSize", 0.2);
   this->declare_parameter<int>("kKeyposeCloudStackNum", 5);
