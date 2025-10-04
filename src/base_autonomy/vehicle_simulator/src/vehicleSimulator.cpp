@@ -224,9 +224,11 @@ int main(int argc, char** argv)
   nh->declare_parameter<bool>("adjustZ", adjustZ);
   nh->declare_parameter<double>("terrainRadiusZ", terrainRadiusZ);
   nh->declare_parameter<int>("minTerrainPointNumZ", minTerrainPointNumZ);
+  nh->declare_parameter<double>("smoothRateZ", smoothRateZ);
   nh->declare_parameter<bool>("adjustIncl", adjustIncl);
   nh->declare_parameter<double>("terrainRadiusIncl", terrainRadiusIncl);
   nh->declare_parameter<int>("minTerrainPointNumIncl", minTerrainPointNumIncl);
+  nh->declare_parameter<double>("smoothRateIncl", smoothRateIncl);
   nh->declare_parameter<double>("InclFittingThre", InclFittingThre);
   nh->declare_parameter<double>("maxIncl", maxIncl);
 
@@ -243,9 +245,11 @@ int main(int argc, char** argv)
   nh->get_parameter("adjustZ", adjustZ);
   nh->get_parameter("terrainRadiusZ", terrainRadiusZ);
   nh->get_parameter("minTerrainPointNumZ", minTerrainPointNumZ);
+  nh->get_parameter("smoothRateZ", smoothRateZ);
   nh->get_parameter("adjustIncl", adjustIncl);
   nh->get_parameter("terrainRadiusIncl", terrainRadiusIncl);
   nh->get_parameter("minTerrainPointNumIncl", minTerrainPointNumIncl);
+  nh->get_parameter("smoothRateIncl", smoothRateIncl);
   nh->get_parameter("InclFittingThre", InclFittingThre);
   nh->get_parameter("maxIncl", maxIncl);
 
