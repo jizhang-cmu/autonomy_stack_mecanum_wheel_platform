@@ -3,7 +3,7 @@
   <node pkg="terrain_analysis" exec="terrainAnalysis" name="terrainAnalysis" output="screen">
     <param name="scanVoxelSize" value="0.05" />
     <param name="decayTime" value="1.0" />
-    <param name="noDecayDis" value="1.75" />
+    <param name="noDecayDis" value="1.5" />
     <param name="clearingDis" value="8.0" />
     <param name="useSorting" value="true" />
     <param name="quantileZ" value="0.25" />

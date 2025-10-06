@@ -87,14 +87,6 @@ def generate_launch_description():
         name='localPlanner',
         output='screen',
         parameters=[
-            PythonExpression([
-                "'", FindPackageShare('local_planner'), "/config/",
-                LaunchConfiguration('config'), ".yaml'"
-            ]),
-            PythonExpression([
-                "'", FindPackageShare('local_planner'), "/config/",
-                LaunchConfiguration('robot_config'), ".yaml'"
-            ]),
             {
                 'pathFolder': os.path.join(local_planner_share, 'paths'),
                 'twoWayDrive': True,
@@ -132,7 +124,15 @@ def generate_launch_description():
                 'freezeTime': 0.0,
                 'goalX': LaunchConfiguration('goalX'),
                 'goalY': LaunchConfiguration('goalY'),
-            }
+            },
+            PythonExpression([
+                "'", FindPackageShare('local_planner'), "/config/",
+                LaunchConfiguration('config'), ".yaml'"
+            ]),
+            PythonExpression([
+                "'", FindPackageShare('local_planner'), "/config/",
+                LaunchConfiguration('robot_config'), ".yaml'"
+            ]),
         ]
     )
 
@@ -143,14 +143,6 @@ def generate_launch_description():
         name='pathFollower',
         output='screen',
         parameters=[
-            PythonExpression([
-                "'", FindPackageShare('local_planner'), "/config/",
-                LaunchConfiguration('config'), ".yaml'"
-            ]),
-            PythonExpression([
-                "'", FindPackageShare('local_planner'), "/config/",
-                LaunchConfiguration('robot_config'), ".yaml'"
-            ]),
             {
                 'pubSkipNum': 1,
                 'twoWayDrive': LaunchConfiguration('twoWayDrive'),
@@ -169,7 +161,15 @@ def generate_launch_description():
                 'noRotAtGoal': False,
                 'autonomyMode': LaunchConfiguration('autonomyMode'),
                 'joyToSpeedDelay': LaunchConfiguration('joyToSpeedDelay'),
-            }
+            },
+            PythonExpression([
+                "'", FindPackageShare('local_planner'), "/config/",
+                LaunchConfiguration('config'), ".yaml'"
+            ]),
+            PythonExpression([
+                "'", FindPackageShare('local_planner'), "/config/",
+                LaunchConfiguration('robot_config'), ".yaml'"
+            ]),
         ]
     )
 
@@ -179,9 +179,9 @@ def generate_launch_description():
         executable='static_transform_publisher',
         name='vehicleTransPublisher',
         arguments=[
-            str(sensor_offsets['sensorOffsetX']),
-            str(sensor_offsets['sensorOffsetY']),
-            str(sensor_offsets['sensorOffsetZ']),
+            str(-sensor_offsets['sensorOffsetX']),
+            str(-sensor_offsets['sensorOffsetY']),
+            str(-sensor_offsets['sensorOffsetZ']),
             '0', '0', '0',
             '/sensor',
             '/vehicle'

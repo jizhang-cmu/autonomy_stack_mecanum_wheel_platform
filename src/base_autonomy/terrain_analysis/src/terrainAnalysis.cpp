@@ -70,8 +70,8 @@ int terrainVoxelHalfWidth = (terrainVoxelWidth - 1) / 2;
 const int terrainVoxelNum = terrainVoxelWidth * terrainVoxelWidth;
 
 // planar voxel parameters
-float planarVoxelSize = 0.2;
-const int planarVoxelWidth = 51;
+float planarVoxelSize = 0.1;
+const int planarVoxelWidth = 101;
 int planarVoxelHalfWidth = (planarVoxelWidth - 1) / 2;
 const int planarVoxelNum = planarVoxelWidth * planarVoxelWidth;
 
