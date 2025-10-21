@@ -23,7 +23,7 @@ feature_extraction_node:
         use_dynamic_mask: false
         use_up_realsense_points: false
         use_down_realsense_points: false
-        min_range: 0.1    #<!-- remove too closed points -->
+        min_range: 0.15    #<!-- remove too closed points -->
         max_range: 130.
         skip_realsense_points: 3
         provide_imu_laser_extrinsic: true
