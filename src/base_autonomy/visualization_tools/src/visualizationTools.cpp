@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <chrono>
+#include <fstream>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/time.hpp"
@@ -11,6 +12,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "sensor_msgs/msg/point_cloud2.hpp"
 #include <std_msgs/msg/float32.hpp>
+#include <std_msgs/msg/string.hpp>
 #include <geometry_msgs/msg/polygon_stamped.h>
 #include <geometry_msgs/msg/point_stamped.h>
 
@@ -19,6 +21,7 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 
 #include <pcl/io/ply_io.h>
+#include <pcl/io/pcd_io.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/kdtree/kdtree_flann.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -237,6 +240,135 @@ void runtimeHandler(const std_msgs::msg::Float32::ConstSharedPtr runtimeIn)
   runtime = runtimeIn->data;
 }
 
+void saveMapHandler(const std_msgs::msg::String::ConstSharedPtr msg)
+{
+  if (msg->data.empty()) {
+    return;
+  }
+
+  std::string vghFilename = msg->data;
+
+  // Extract base filename for display
+  size_t lastSlash = vghFilename.find_last_of("/\\");
+  std::string baseFilename = (lastSlash != std::string::npos) ?
+                              vghFilename.substr(lastSlash + 1) : vghFilename;
+
+  // Replace .vgh extension with .pcd
+  std::string pcdFilename = vghFilename;
+  size_t pos = pcdFilename.rfind(".vgh");
+  if (pos != std::string::npos) {
+    pcdFilename.replace(pos, 4, ".pcd");
+  } else {
+    pcdFilename += ".pcd";
+  }
+
+  // Save the explored area cloud (which contains all accumulated scans) to PCD file
+  if (exploredAreaCloud->points.size() > 0) {
+    RCLCPP_INFO(rclcpp::get_logger("visualizationTools"),
+                "===== Saving Point Cloud Map =====");
+    RCLCPP_INFO(rclcpp::get_logger("visualizationTools"),
+                "VGH file: %s (handled by FAR planner)", baseFilename.c_str());
+
+    // Note: exploredAreaCloud contains all accumulated raw scans (before downsampling)
+    if (pcl::io::savePCDFileASCII(pcdFilename, *exploredAreaCloud) == 0) {
+      RCLCPP_INFO(rclcpp::get_logger("visualizationTools"),
+                  "✓ PCD file: Saved %lu points to %s",
+                  exploredAreaCloud->points.size(), pcdFilename.c_str());
+      RCLCPP_INFO(rclcpp::get_logger("visualizationTools"),
+                  "===== Save Complete =====");
+    } else {
+      RCLCPP_ERROR(rclcpp::get_logger("visualizationTools"),
+                   "✗ PCD file: Failed to save to %s", pcdFilename.c_str());
+      RCLCPP_ERROR(rclcpp::get_logger("visualizationTools"),
+                   "Check write permissions and disk space");
+    }
+  } else {
+    RCLCPP_WARN(rclcpp::get_logger("visualizationTools"),
+                "No point cloud data to save - robot needs to explore first");
+    RCLCPP_WARN(rclcpp::get_logger("visualizationTools"),
+                "VGH file may still be saved by FAR planner if visibility graph exists");
+  }
+}
+
+void readMapHandler(const std_msgs::msg::String::ConstSharedPtr msg)
+{
+  if (msg->data.empty()) {
+    return;
+  }
+
+  std::string vghFilename = msg->data;
+
+  // Extract base filename for display
+  size_t lastSlash = vghFilename.find_last_of("/\\");
+  std::string baseFilename = (lastSlash != std::string::npos) ?
+                              vghFilename.substr(lastSlash + 1) : vghFilename;
+
+  // Replace .vgh extension with .pcd
+  std::string pcdFilename = vghFilename;
+  size_t pos = pcdFilename.rfind(".vgh");
+  if (pos != std::string::npos) {
+    pcdFilename.replace(pos, 4, ".pcd");
+  } else {
+    pcdFilename += ".pcd";
+  }
+
+  RCLCPP_INFO(rclcpp::get_logger("visualizationTools"),
+              "===== Loading Map Files =====");
+  RCLCPP_INFO(rclcpp::get_logger("visualizationTools"),
+              "VGH file: %s (handled by FAR planner)", baseFilename.c_str());
+
+  // Check if PCD file exists
+  std::ifstream pcdFile(pcdFilename);
+  if (!pcdFile.good()) {
+    RCLCPP_WARN(rclcpp::get_logger("visualizationTools"),
+                "✗ PCD file not found: %s", pcdFilename.c_str());
+    RCLCPP_WARN(rclcpp::get_logger("visualizationTools"),
+                "Only visibility graph will be loaded (no point cloud visualization)");
+    RCLCPP_INFO(rclcpp::get_logger("visualizationTools"),
+                "Tip: Save both files together using the Save button after exploration");
+    return;
+  }
+  pcdFile.close();
+
+  // Load point cloud from PCD file
+  pcl::PointCloud<pcl::PointXYZI>::Ptr loadedCloud(new pcl::PointCloud<pcl::PointXYZI>());
+  if (pcl::io::loadPCDFile<pcl::PointXYZI>(pcdFilename, *loadedCloud) == 0) {
+    RCLCPP_INFO(rclcpp::get_logger("visualizationTools"),
+                "✓ PCD file: Loaded %lu points from %s",
+                loadedCloud->points.size(), pcdFilename.c_str());
+
+    // Update the overall map with loaded data
+    overallMapCloud->clear();
+    for (const auto& point : loadedCloud->points) {
+      pcl::PointXYZ p;
+      p.x = point.x;
+      p.y = point.y;
+      p.z = point.z;
+      overallMapCloud->push_back(p);
+    }
+
+    // Downsample and prepare for publishing
+    overallMapCloudDwz->clear();
+    overallMapDwzFilter.setInputCloud(overallMapCloud);
+    overallMapDwzFilter.filter(*overallMapCloudDwz);
+    pcl::toROSMsg(*overallMapCloudDwz, overallMap2);
+
+    // Also update the explored area cloud with loaded data
+    *exploredAreaCloud = *loadedCloud;
+
+    RCLCPP_INFO(rclcpp::get_logger("visualizationTools"),
+                "Point cloud downsampled to %lu points for visualization",
+                overallMapCloudDwz->points.size());
+    RCLCPP_INFO(rclcpp::get_logger("visualizationTools"),
+                "===== Load Complete =====");
+  } else {
+    RCLCPP_ERROR(rclcpp::get_logger("visualizationTools"),
+                 "✗ Failed to parse PCD file: %s", pcdFilename.c_str());
+    RCLCPP_ERROR(rclcpp::get_logger("visualizationTools"),
+                 "File may be corrupted or in wrong format");
+  }
+}
+
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
@@ -284,6 +416,10 @@ int main(int argc, char** argv)
 
   auto subRuntime = nh->create_subscription<std_msgs::msg::Float32>("/runtime", 5, runtimeHandler);
 
+  auto subSaveFileDir = nh->create_subscription<std_msgs::msg::String>("/save_file_dir", 5, saveMapHandler);
+
+  auto subReadFileDir = nh->create_subscription<std_msgs::msg::String>("/read_file_dir", 5, readMapHandler);
+
   auto pubOverallMap = nh->create_publisher<sensor_msgs::msg::PointCloud2>("/overall_map", 5);
 
   pubExploredAreaPtr = nh->create_publisher<sensor_msgs::msg::PointCloud2>("/explored_areas", 5);
@@ -310,7 +446,7 @@ int main(int argc, char** argv)
   overallMapDwzFilter.filter(*overallMapCloudDwz);
   overallMapCloud->clear();
 
-  int overallMapCloudDwzSize = overallMapCloudDwz->points.size();
+  size_t overallMapCloudDwzSize = overallMapCloudDwz->points.size();
   pcl::toROSMsg(*overallMapCloudDwz, overallMap2);
 
   time_t logTime = time(0);
