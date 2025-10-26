@@ -5,7 +5,8 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, TimerAction
 from launch.launch_description_sources import PythonLaunchDescriptionSource, FrontendLaunchDescriptionSource
 from launch_ros.actions import Node
-from launch.substitutions import LaunchConfiguration 
+from launch.substitutions import LaunchConfiguration
+from launch.conditions import IfCondition, UnlessCondition
 
 def generate_launch_description():
   route_planner_config = LaunchConfiguration('route_planner_config')
@@ -17,7 +18,12 @@ def generate_launch_description():
   vehicleY = LaunchConfiguration('vehicleY')
   checkTerrainConn = LaunchConfiguration('checkTerrainConn')
 
-  declare_route_planner_config = DeclareLaunchArgument('route_planner_config', default_value='indoor', description='')
+  declare_use_pct_planner = DeclareLaunchArgument(
+    'use_pct_planner',
+    default_value='true',
+    description='Use PCT Planner instead of FAR Planner (true/false)'
+  )
+  declare_route_planner_config = DeclareLaunchArgument('route_planner_config', default_value='indoor', description='FAR Planner config')
   declare_world_name = DeclareLaunchArgument('world_name', default_value='real_world', description='')
   declare_sensorOffsetX = DeclareLaunchArgument('sensorOffsetX', default_value='0.05', description='')
   declare_sensorOffsetY = DeclareLaunchArgument('sensorOffsetY', default_value='0.0', description='')
@@ -88,12 +94,21 @@ def generate_launch_description():
   		}]
   )
 
+  # FAR Planner (default)
   start_far_planner = IncludeLaunchDescription(
     PythonLaunchDescriptionSource(
       [get_package_share_directory('far_planner'), '/launch/far_planner.launch']),
     launch_arguments={
       'config': route_planner_config,
-    }.items()
+    }.items(),
+    condition=UnlessCondition(LaunchConfiguration('use_pct_planner'))
+  )
+
+  # PCT Planner (alternative)
+  start_pct_planner = IncludeLaunchDescription(
+    PythonLaunchDescriptionSource(
+      [get_package_share_directory('pct_planner'), '/launch/pct_planner.launch.py']),
+    condition=IfCondition(LaunchConfiguration('use_pct_planner'))
   )
 
   start_mid360 = IncludeLaunchDescription(
@@ -104,6 +119,7 @@ def generate_launch_description():
   ld = LaunchDescription()
 
   # Add the actions
+  ld.add_action(declare_use_pct_planner)
   ld.add_action(declare_route_planner_config)
   ld.add_action(declare_world_name)
   ld.add_action(declare_sensorOffsetX)
@@ -121,6 +137,7 @@ def generate_launch_description():
   ld.add_action(start_visualization_tools)
   ld.add_action(start_joy)
   ld.add_action(start_far_planner)
+  ld.add_action(start_pct_planner)
   ld.add_action(start_mid360)
 
   return ld
