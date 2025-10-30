@@ -1,10 +1,4 @@
-The repository contains the full autonomy stack for the Mecanum wheel platform - T-Bot. The platform is designed to support advanced AI in mind. Sensors installed on the platform include a [Livox Mid-360 lidar](https://www.livoxtech.com/mid-360). Additional sensors can be mounted to the top board with various mounting options available. The platform comes with an Intel NUC i7 computer for running the autonomy stack. Space is left for an additional Nvidia Jetson AGX Orin computer or a gaming laptop to run advanced AI models. The autonomy stack contains a SLAM module, a route planner, an exploration planner, and a base autonomy system, where the base autonomy system further includes fundamental navigation modules for terrain traversability analysis, collision avoidance, and waypoint following. The system overall is capable of taking a goal point and navigating the vehicle autonomously to the goal point as well as exploring an environment and building a map along the way. Alternatively, the system allows users to use a joystick controller to guide the navigation while the system itself is in charge of collision avoidance. We provide a simulation setup together with the real robot setup for users to take advantage of the system in various use cases. The full autonomy stack is open-sourced.
-
-Click [here for the product page](https://www.tarerobotics.com) and the [online tutorial](https://tarerobotics.readthedocs.io).
-
-<p align="center">
-  <img src="img/mecanum_wheel_platform.jpg" alt="Mecanum Wheel Platform" width="60%"/>
-</p>
+The autonomy stack contains a SLAM module, a route planner, an exploration planner, and a base autonomy system, where the base autonomy system further includes fundamental navigation modules for terrain traversability analysis, collision avoidance, and waypoint following. The system overall is capable of taking a goal point and navigating the vehicle autonomously to the goal point as well as exploring an environment and building a map along the way. Alternatively, the system allows users to use a joystick controller to guide the navigation while the system itself is in charge of collision avoidance. We provide a simulation setup together with the real robot setup for users to take advantage of the system in various use cases. The full autonomy stack is open-sourced.
 
 ## Simulation Setup
 
@@ -20,12 +14,7 @@ Install dependencies with the command lines below.
 sudo apt update
 sudo apt install ros-jazzy-desktop-full ros-jazzy-pcl-ros libpcl-dev git
 ```
-Clone the open-source repository.
-```
-git clone https://github.com/jizhang-cmu/autonomy_stack_mecanum_wheel_platform.git
-
-```
-In a terminal, go to the folder, checkout the 'jazzy' branch, and compile. Note that this skips the SLAM module and Mid-360 lidar driver. The two packages are not needed for simulation.
+In a terminal, go to the folder, checkout the 'jazzy' or 'humble' branch, and compile. Note that this skips the SLAM module and Mid-360 lidar driver. The two packages are not needed for simulation.
 ```
 cd autonomy_stack_mecanum_wheel_platform
 git checkout jazzy
@@ -150,9 +139,8 @@ sudo apt install ros-jazzy-desktop-full ros-jazzy-pcl-ros libpcl-dev git cmake l
 First, clone the open-source repository and checkout the 'jazzy' branch.
 
 ```
-git clone https://github.com/jizhang-cmu/autonomy_stack_mecanum_wheel_platform.git
-cd autonomy_stack_mecanum_wheel_platform
-git checkout jazzy
+git clone https://github.com/VectorRobotics/vector_navigation_stack.git
+cd vector_navigation_stack
 ```
 
 Next, install ‘Livox-SDK2’. In a terminal, go to the 'src/utilities/livox_ros_driver2/Livox-SDK2' folder in the repository and use the command lines below. More information about [‘Livox-SDK2’ can be found here](https://github.com/Livox-SDK/Livox-SDK2).
@@ -166,7 +154,7 @@ make && sudo make install
 Now, compile the Mid-360 lidar driver. Note that the driver needs to be configured specifically to the lidar. In the 'src/utilities/livox_ros_driver2/config/MID360_config.json' file, under the 'lidar_configs' settings, set the IP to 192.168.1.1xx, where xx are the last two digits of the lidar serial number (you can find it on a sticker under a QR code on the lidar).
 
 ```
-cd autonomy_stack_mecanum_wheel_platform
+cd vector_navigation_stack
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release --packages-select livox_ros_driver2
 ```
 
@@ -207,7 +195,7 @@ sudo /sbin/ldconfig -v
 Now, compile the SLAM module. Note that the Mid-360 lidar driver is a dependency of the SLAM module. Please make sure it is already compiled.
 
 ```
-cd autonomy_stack_mecanum_wheel_platform
+cd vector_navigation_stack
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release --packages-select arise_slam_mid360 arise_slam_mid360_msgs
 ```
 
@@ -216,7 +204,7 @@ colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release --package
 Connect the motor controller to the processing computer via a USB cable. Determine the serial device on the processing computer. You may list all the entries by `ls /dev`. The device is likely registered as '/dev/ttyACM0' or '/dev/ttyACM1'... In the 'src/base_autonomy/local_planner/launch/local_planner.launch' and 'src/utilities/teleop_joy_controller/launch/teleop_joy_controller.launch' files, update the '/dev/ttyACM0' entry and compile the serial driver.
 
 ```
-cd autonomy_stack_mecanum_wheel_platform
+cd vector_navigation_stack
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release --packages-select serial teleop_joy_controller
 
 ```
@@ -233,7 +221,7 @@ ros2 launch teleop_joy_controller teleop_joy_controller.launch
 After completion of the above setup steps, you can compile the full repository.
 
 ```
-cd autonomy_stack_mecanum_wheel_platform
+cd vector_navigation_stack
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 ```
 
