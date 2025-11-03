@@ -60,6 +60,10 @@ pathFollower:
     maxAccel: 1.0
     goalYawGain: 1.0
 
+    # Speed limits
+    maxSpeed: 0.875
+    autonomySpeed: 0.875
+
     # Slow down threshold
     slowDwnDisThre: 0.875
     omniDirDiffThre: 1.5
