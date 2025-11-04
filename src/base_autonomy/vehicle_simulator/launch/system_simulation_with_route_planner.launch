@@ -9,6 +9,7 @@ from launch.substitutions import LaunchConfiguration
 from launch.conditions import IfCondition, UnlessCondition
 
 def generate_launch_description():
+  use_pct_planner = LaunchConfiguration('use_pct_planner')
   route_planner_config = LaunchConfiguration('route_planner_config')
   world_name = LaunchConfiguration('world_name')
   vehicleHeight = LaunchConfiguration('vehicleHeight')
@@ -134,14 +135,14 @@ def generate_launch_description():
     launch_arguments={
       'config': route_planner_config,
     }.items(),
-    condition=UnlessCondition(LaunchConfiguration('use_pct_planner'))
+    condition=UnlessCondition(use_pct_planner)
   )
 
   # PCT Planner (alternative)
   start_pct_planner = IncludeLaunchDescription(
     PythonLaunchDescriptionSource(
       [get_package_share_directory('pct_planner'), '/launch/pct_planner.launch.py']),
-    condition=IfCondition(LaunchConfiguration('use_pct_planner'))
+    condition=IfCondition(use_pct_planner)
   )
 
   ld = LaunchDescription()

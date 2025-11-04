@@ -25,7 +25,7 @@ localPlanner:
   ros__parameters:
 
     # obstacle height threshold
-    obstacleHeightThre: 0.1
+    obstacleHeightThre: 0.3 # 0.1 for flat terrain
 
     # Sensor offset
     sensorOffsetX: 0.2
@@ -41,10 +41,10 @@ localPlanner:
 
     # Path planning
     pathScale: 0.8
-    minPathScale: 0.6 
+    minPathScale: 0.8 # 0.6 for flat terrain
     pathScaleStep: 0.1
-    minPathRange: 0.8
-    pathRangeStep: 0.5
+    minPathRange: 0.6 # 0.8 for flat terrain
+    pathRangeStep: 0.45 # 0.5 for flat terrain
     adjacentRange: 3.0
 
     # Goal tolerances
