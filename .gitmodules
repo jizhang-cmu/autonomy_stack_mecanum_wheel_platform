@@ -1,0 +1,3 @@
+[submodule "src/route_planner/PCT_planner"]
+	path = src/route_planner/PCT_planner
+	url = git@github.com:VectorRobotics/PCT_planner.git
