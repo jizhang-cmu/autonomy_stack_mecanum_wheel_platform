@@ -58,6 +58,7 @@ laser_mapping_node:
         sensor_frame: "laser"
         sensor_frame_rot: "sensor_rot"
 
+        scanPeriod: 0.1
         mapping_line_resolution: 0.1
         mapping_plane_resolution: 0.2
         max_iterations: 5
@@ -74,6 +75,8 @@ laser_mapping_node:
         visual_confidence_factor: 1.0
         pos_degeneracy_threshold: 1.0
         ori_degeneracy_threshold: 1.0
+        shift_avg_ratio: 0.2
+        shift_undistortion: true
 
         local_mode: false
         read_pose_file: false

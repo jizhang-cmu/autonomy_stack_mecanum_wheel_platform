@@ -201,6 +201,7 @@ namespace arise_slam {
 
     bool laserMapping::readParameters()
     {
+        this->declare_parameter<float>("scanPeriod", 0.1);
         this->declare_parameter<float>("mapping_line_resolution", 0.1);
         this->declare_parameter<float>("mapping_plane_resolution", 0.2);
         this->declare_parameter<int>("max_iterations", 4);
@@ -215,6 +216,8 @@ namespace arise_slam {
         this->declare_parameter<float>("visual_confidence_factor", 1.0);
         this->declare_parameter<float>("pos_degeneracy_threshold", 1.0);
         this->declare_parameter<float>("ori_degeneracy_threshold", 1.0);
+        this->declare_parameter<float>("shift_avg_ratio", 0.2);
+        this->declare_parameter<bool>("shift_undistortion", true);
         this->declare_parameter<std::string>("map_dir", "pointcloud_local.txt");
         this->declare_parameter<bool>("local_mode", false);
         this->declare_parameter<float>("init_x", 0.0);
@@ -225,6 +228,7 @@ namespace arise_slam {
         this->declare_parameter<float>("init_yaw", 0.0);
         this->declare_parameter<bool>("read_pose_file", false);
 
+        config_.period = get_parameter("scanPeriod").as_double();
         config_.lineRes = get_parameter("mapping_line_resolution").as_double();
         config_.planeRes = get_parameter("mapping_plane_resolution").as_double();
         config_.max_iterations = get_parameter("max_iterations").as_int();
@@ -239,6 +243,8 @@ namespace arise_slam {
         config_.visual_confidence_factor = get_parameter("visual_confidence_factor").as_double();
         config_.pos_degeneracy_threshold = get_parameter("pos_degeneracy_threshold").as_double();
         config_.ori_degeneracy_threshold = get_parameter("ori_degeneracy_threshold").as_double(); 
+        config_.shift_avg_ratio = get_parameter("shift_avg_ratio").as_double();
+        config_.shift_undistortion = get_parameter("shift_undistortion").as_bool();
         config_.map_dir = get_parameter("map_dir").as_string(); 
         config_.local_mode = get_parameter("local_mode").as_bool();
         config_.read_pose_file = get_parameter("read_pose_file").as_bool();
@@ -565,6 +571,7 @@ namespace arise_slam {
                 prediction_source =PredictionSource::IMU_ORIENTATION;
                 T_w_lidar.rot = q_w_predict;
                 q_wodom_pre = q_wodom_curr;
+                T_w_lidar.pos += Eigen::Vector3d{shiftX, shiftY, shiftZ};
                 return;
             }
         }
@@ -922,6 +929,14 @@ namespace arise_slam {
         odomAftMapped.pose.pose.position.y = t_w_curr.y();
         odomAftMapped.pose.pose.position.z = t_w_curr.z();
 
+        shiftX = (1.0 - config_.shift_avg_ratio) * shiftX + config_.shift_avg_ratio * (odomAftMapped.pose.pose.position.x - poseX);
+        shiftY = (1.0 - config_.shift_avg_ratio) * shiftY + config_.shift_avg_ratio * (odomAftMapped.pose.pose.position.y - poseY);
+        shiftZ = (1.0 - config_.shift_avg_ratio) * shiftZ + config_.shift_avg_ratio * (odomAftMapped.pose.pose.position.z - poseZ);
+
+        poseX = odomAftMapped.pose.pose.position.x;
+        poseY = odomAftMapped.pose.pose.position.y;
+        poseZ = odomAftMapped.pose.pose.position.z;
+
         nav_msgs::msg::Odometry laserOdomIncremental;
 
         if (initialization == false)
@@ -1167,8 +1182,57 @@ namespace arise_slam {
                 imuorientationAvailable=true;
 
                 setInitialGuess();
-                Transformd start_tf(T_w_lidar);
+                Transformd T_lidar_w = T_w_lidar.inverse();
 
+                if (config_.shift_undistortion) {
+                  int laserCloudCornerLastNum = laserCloudCornerLast->points.size();
+                  for (int i = 0; i < laserCloudCornerLastNum; i++) {
+                    Eigen::Vector3d pt(laserCloudCornerLast->points[i].x, laserCloudCornerLast->points[i].y, laserCloudCornerLast->points[i].z);
+                    Eigen::Vector3d pt2 = T_w_lidar * pt;
+
+                    float x3 = pt2.x() + shiftX * laserCloudCornerLast->points[i].intensity / config_.period;
+                    float y3 = pt2.y() + shiftY * laserCloudCornerLast->points[i].intensity / config_.period;
+                    float z3 = pt2.z() + shiftZ * laserCloudCornerLast->points[i].intensity / config_.period;
+
+                    Eigen::Vector3d pt3 = T_lidar_w * Eigen::Vector3d(x3, y3, z3);
+
+                    laserCloudCornerLast->points[i].x = pt3.x();
+                    laserCloudCornerLast->points[i].y = pt3.y();
+                    laserCloudCornerLast->points[i].z = pt3.z();
+                  }
+
+                  int laserCloudSurfLastNum = laserCloudSurfLast->points.size();
+                  for (int i = 0; i < laserCloudSurfLastNum; i++) {
+                    Eigen::Vector3d pt(laserCloudSurfLast->points[i].x, laserCloudSurfLast->points[i].y, laserCloudSurfLast->points[i].z);
+                    Eigen::Vector3d pt2 = T_w_lidar * pt;
+
+                    float x3 = pt2.x() + shiftX * laserCloudSurfLast->points[i].intensity / config_.period;
+                    float y3 = pt2.y() + shiftY * laserCloudSurfLast->points[i].intensity / config_.period;
+                    float z3 = pt2.z() + shiftZ * laserCloudSurfLast->points[i].intensity / config_.period;
+
+                    Eigen::Vector3d pt3 = T_lidar_w * Eigen::Vector3d(x3, y3, z3);
+
+                    laserCloudSurfLast->points[i].x = pt3.x();
+                    laserCloudSurfLast->points[i].y = pt3.y();
+                    laserCloudSurfLast->points[i].z = pt3.z();
+                  }
+
+                  int laserCloudFullResNum = laserCloudFullRes->points.size();
+                  for (int i = 0; i < laserCloudFullResNum; i++) {
+                    Eigen::Vector3d pt(laserCloudFullRes->points[i].x, laserCloudFullRes->points[i].y, laserCloudFullRes->points[i].z);
+                    Eigen::Vector3d pt2 = T_w_lidar * pt;
+
+                    float x3 = pt2.x() + shiftX * float(i) / float(laserCloudFullResNum);
+                    float y3 = pt2.y() + shiftY * float(i) / float(laserCloudFullResNum);
+                    float z3 = pt2.z() + shiftZ * float(i) / float(laserCloudFullResNum);
+
+                    Eigen::Vector3d pt3 = T_lidar_w * Eigen::Vector3d(x3, y3, z3);
+                  
+                    laserCloudFullRes->points[i].x = pt3.x();
+                    laserCloudFullRes->points[i].y = pt3.y();
+                    laserCloudFullRes->points[i].z = pt3.z();
+                  }
+                }
                 
                 while(!cornerLastBuf.empty())
                 {
