@@ -45,6 +45,7 @@
 namespace arise_slam {
 
     struct laser_mapping_config{
+        float period;
         float lineRes;
         float planeRes;
         int max_iterations;
@@ -60,6 +61,8 @@ namespace arise_slam {
         float visual_confidence_factor;
         float pos_degeneracy_threshold;
         float ori_degeneracy_threshold;
+        float shift_avg_ratio;
+        bool shift_undistortion;
         float yaw_ratio;
         std::string map_dir;
         bool local_mode;
@@ -263,6 +266,13 @@ namespace arise_slam {
         bool lastimuodomAvaliable=false;
         bool imu_initialized = false;
 
+        float poseX = 0;
+        float poseY = 0;
+        float poseZ = 0;
+
+        float shiftX = 0;
+        float shiftY = 0;
+        float shiftZ = 0;
 
         pcl::VoxelGrid<PointType> downSizeFilterCorner;
         pcl::VoxelGrid<PointType> downSizeFilterSurf;

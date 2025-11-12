@@ -50,6 +50,7 @@ laser_mapping_node:
         sensor_frame: "laser"
         sensor_frame_rot: "sensor_rot"
 
+        scanPeriod: 0.1
         mapping_line_resolution: 0.1
         mapping_plane_resolution: 0.2
         max_iterations: 5
@@ -66,6 +67,8 @@ laser_mapping_node:
         visual_confidence_factor: 1.0
         pos_degeneracy_threshold: 1.0
         ori_degeneracy_threshold: 1.0
+        shift_avg_ratio: 0.2
+        shift_undistortion: true
 
         local_mode: false
         read_pose_file: false
@@ -101,6 +104,7 @@ imu_preintegration_node:
         gyr_w: 3.5640318696367613e-05       # gyroscope bias random work noise standard deviation.     #4.0e-5
         g_norm: 9.80511    # 0 means you need to provide both imu-camera and laser-camera extrinsic
         use_imu_roll_pitch: false
-        imu_acc_x_limit: 0.3
-        imu_acc_y_limit: 0.2
-        imu_acc_z_limit: 0.1
+        lidar_flip: false
+        imu_acc_x_limit: 0.4
+        imu_acc_y_limit: 0.4
+        imu_acc_z_limit: 0.2
