@@ -64,6 +64,10 @@ namespace arise_slam {
             std::bind(&laserMapping::visualOdometryHandler, this,
                         std::placeholders::_1), sub_options);
 
+        subInitialPose = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
+            "/initialpose", 10,
+            std::bind(&laserMapping::initialPoseHandler, this,
+                        std::placeholders::_1), sub_options);
 
         pubLaserCloudSurround = this->create_publisher<sensor_msgs::msg::PointCloud2>(
             ProjectName+"/laser_cloud_surround", 2);
@@ -126,7 +130,7 @@ namespace arise_slam {
         slam.OptSet.velocity_failure_threshold=config_.velocity_failure_threshold;
         slam.OptSet.max_surface_features=config_.max_surface_features;
         slam.OptSet.yaw_ratio=yaw_ratio;
-        slam.map_dir=config_.map_dir;
+        slam.relocalization_map_path=config_.relocalization_map_path;
         slam.local_mode=config_.local_mode;
         slam.init_x=config_.init_x;
         slam.init_y=config_.init_y;
@@ -218,7 +222,7 @@ namespace arise_slam {
         this->declare_parameter<float>("ori_degeneracy_threshold", 1.0);
         this->declare_parameter<float>("shift_avg_ratio", 0.2);
         this->declare_parameter<bool>("shift_undistortion", true);
-        this->declare_parameter<std::string>("map_dir", "pointcloud_local.txt");
+        this->declare_parameter<std::string>("relocalization_map_path", "");
         this->declare_parameter<bool>("local_mode", false);
         this->declare_parameter<float>("init_x", 0.0);
         this->declare_parameter<float>("init_y", 0.0);
@@ -245,13 +249,13 @@ namespace arise_slam {
         config_.ori_degeneracy_threshold = get_parameter("ori_degeneracy_threshold").as_double(); 
         config_.shift_avg_ratio = get_parameter("shift_avg_ratio").as_double();
         config_.shift_undistortion = get_parameter("shift_undistortion").as_bool();
-        config_.map_dir = get_parameter("map_dir").as_string(); 
+        config_.relocalization_map_path = get_parameter("relocalization_map_path").as_string();
         config_.local_mode = get_parameter("local_mode").as_bool();
         config_.read_pose_file = get_parameter("read_pose_file").as_bool();
 
         if(config_.read_pose_file)
-        {   
-            readLocalizationPose(config_.map_dir);
+        {
+            readLocalizationPose(config_.relocalization_map_path);
             config_.init_x= odometryResults[0].x;
             config_.init_y= odometryResults[0].y;
             config_.init_z= odometryResults[0].z;
@@ -274,33 +278,68 @@ namespace arise_slam {
     
     bool laserMapping::readPointCloud()
     {
-        FILE *map_file = fopen(slam.map_dir.c_str(), "r");
-        if (map_file == NULL) {
+        return loadMapFromFile(slam.relocalization_map_path);
+    }
+
+    bool laserMapping::loadMapFromFile(const std::string& map_path)
+    {
+        laserCloudPriorOrg->clear();
+        laserCloudPrior->clear();
+
+        // Check file extension
+        std::string extension = map_path.substr(map_path.find_last_of(".") + 1);
+        std::transform(extension.begin(), extension.end(), extension.begin(), ::tolower);
+
+        if (extension == "pcd") {
+            // Load PCD file
+            RCLCPP_INFO(this->get_logger(), "Loading PCD map from: %s", map_path.c_str());
+            if (pcl::io::loadPCDFile<PointType>(map_path, *laserCloudPriorOrg) == -1) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to load PCD file: %s", map_path.c_str());
+                return false;
+            }
+            RCLCPP_INFO(this->get_logger(), "Loaded %zu points from PCD file", laserCloudPriorOrg->size());
+        } else {
+            // Load TXT file (original format)
+            RCLCPP_INFO(this->get_logger(), "Loading TXT map from: %s", map_path.c_str());
+            FILE *map_file = fopen(map_path.c_str(), "r");
+            if (map_file == NULL) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to open TXT file: %s", map_path.c_str());
+                return false;
+            }
+
+            PointType pointRead;
+            float intensity, time;
+            int val1, val2, val3, val4, val5;
+            while (1) {
+                val1 = fscanf(map_file, "%f", &pointRead.x);
+                val2 = fscanf(map_file, "%f", &pointRead.y);
+                val3 = fscanf(map_file, "%f", &pointRead.z);
+                val4 = fscanf(map_file, "%f", &intensity);
+                val5 = fscanf(map_file, "%f", &time);
+
+                if (val1 != 1 || val2 != 1 || val3 != 1 || val4 != 1 || val5 != 1) break;
+
+                laserCloudPriorOrg->push_back(pointRead);
+            }
+            fclose(map_file);
+            RCLCPP_INFO(this->get_logger(), "Loaded %zu points from TXT file", laserCloudPriorOrg->size());
+        }
+
+        if (laserCloudPriorOrg->empty()) {
+            RCLCPP_ERROR(this->get_logger(), "Loaded map is empty!");
             return false;
         }
-        
-        PointType pointRead;
-        float intensity, time;
-        int val1, val2, val3, val4, val5;
-        while (1) {
-            val1 = fscanf(map_file, "%f", &pointRead.x);
-            val2 = fscanf(map_file, "%f", &pointRead.y);
-            val3 = fscanf(map_file, "%f", &pointRead.z);
-            val4 = fscanf(map_file, "%f", &intensity);
-            val5 = fscanf(map_file, "%f", &time);
 
-            if (val1 != 1 || val2 != 1 || val3 != 1 || val4 != 1 || val5 != 1) break;
-        
-            laserCloudPriorOrg->push_back(pointRead);
-        }
-        
+        // Downsample the map
         downSizeFilterSurf.setInputCloud(laserCloudPriorOrg);
         downSizeFilterSurf.filter(*laserCloudPrior);
         laserCloudPriorOrg->clear();
-        
+
+        RCLCPP_INFO(this->get_logger(), "Map downsampled to %zu points", laserCloudPrior->size());
+
         pcl::toROSMsg(*laserCloudPrior, priorCloudMsg);
         priorCloudMsg.header.frame_id = WORLD_FRAME;
-        
+
         return true;
     } 
 
@@ -372,6 +411,72 @@ namespace arise_slam {
         << odom.roll << " " <<odom.pitch << " " << odom.yaw << odom.timestamp-odometryResults[0].timestamp << std::endl;
 
         outFile.close();
+    }
+
+    void laserMapping::resetSLAMState(const Transformd& new_pose) {
+        RCLCPP_INFO(this->get_logger(), "\033[1;32m===== Resetting SLAM State =====\033[0m");
+        RCLCPP_INFO(this->get_logger(), "New pose: [%.2f, %.2f, %.2f]",
+                    new_pose.pos.x(), new_pose.pos.y(), new_pose.pos.z());
+
+        // Update current pose
+        T_w_lidar = new_pose;
+        t_w_curr = new_pose.pos;
+        q_w_curr = new_pose.rot;
+
+        // Reset SLAM state
+        slam.T_w_lidar = new_pose;
+        slam.last_T_w_lidar = new_pose;
+
+        // Update local map origin
+        slam.localMap.setOrigin(new_pose.pos);
+
+        // Reset transformation tracking
+        q_wmap_wodom = new_pose.rot;
+        t_wmap_wodom = new_pose.pos;
+
+        // Reset initialization flag to force re-initialization
+        initialization = false;
+        startupCount = 10;  // Give it a few frames to stabilize
+
+        RCLCPP_INFO(this->get_logger(), "\033[1;32m===== SLAM State Reset Complete =====\033[0m");
+    }
+
+    void laserMapping::initialPoseHandler(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr initialPose) {
+        RCLCPP_INFO(this->get_logger(), "\033[1;33m===== Received Initial Pose from RViz =====\033[0m");
+
+        std::lock_guard<std::mutex> lock(relocalization_mutex);
+
+        // Extract pose from message
+        const auto& pose = initialPose->pose.pose;
+        Transformd new_pose;
+        new_pose.pos = Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z);
+        new_pose.rot = Eigen::Quaterniond(pose.orientation.w, pose.orientation.x,
+                                          pose.orientation.y, pose.orientation.z);
+
+        RCLCPP_INFO(this->get_logger(), "Initial pose: position=[%.2f, %.2f, %.2f], orientation=[%.3f, %.3f, %.3f, %.3f]",
+                    pose.position.x, pose.position.y, pose.position.z,
+                    pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
+
+        // If we're in localization mode, ensure map is ready for relocalization
+        if (slam.local_mode) {
+            // If no map is loaded yet, try to load it
+            if (laserCloudPrior->empty()) {
+                RCLCPP_INFO(this->get_logger(), "Loading map for relocalization...");
+                if (!loadMapFromFile(slam.relocalization_map_path)) {
+                    RCLCPP_ERROR(this->get_logger(), "Failed to load map for relocalization!");
+                    return;
+                }
+            }
+
+            // Map will be automatically reinitialized on next scan via resetSLAMState
+            RCLCPP_INFO(this->get_logger(), "Map ready with %zu points", laserCloudPrior->size());
+        }
+
+        // Store the pending pose and set flag
+        pending_initial_pose = new_pose;
+        pending_relocalization = true;
+
+        RCLCPP_INFO(this->get_logger(), "\033[1;33m===== Re-localization will be applied on next scan =====\033[0m");
     }
 
     void laserMapping::transformAssociateToMap(Transformd T_w_pre, Transformd T_wodom_curr, Transformd T_wodom_pre) {
@@ -1178,8 +1283,18 @@ namespace arise_slam {
                 q_wodom_curr.y() = IMUPrediction.y();
                 q_wodom_curr.z() = IMUPrediction.z();
                 q_wodom_curr.w() = IMUPrediction.w();
-              
+
                 imuorientationAvailable=true;
+
+                // Check for pending relocalization request
+                {
+                    std::lock_guard<std::mutex> lock(relocalization_mutex);
+                    if (pending_relocalization) {
+                        resetSLAMState(pending_initial_pose);
+                        pending_relocalization = false;
+                        RCLCPP_INFO(this->get_logger(), "\033[1;32mRelocalization applied!\033[0m");
+                    }
+                }
 
                 setInitialGuess();
                 Transformd T_lidar_w = T_w_lidar.inverse();

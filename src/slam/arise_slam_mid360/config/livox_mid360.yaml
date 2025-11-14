@@ -70,14 +70,7 @@ laser_mapping_node:
         shift_avg_ratio: 0.2
         shift_undistortion: true
 
-        local_mode: false
         read_pose_file: false
-        init_x: 0.0
-        init_y: 0.0
-        init_z: 0.0
-        init_roll: 0.0
-        init_pitch: 0.0
-        init_yaw: 0.0
 
 # IMU Preintegration Params
 imu_preintegration_node:

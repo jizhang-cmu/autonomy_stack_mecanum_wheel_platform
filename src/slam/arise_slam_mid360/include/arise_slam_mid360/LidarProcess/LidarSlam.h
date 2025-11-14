@@ -244,8 +244,8 @@ namespace arise_slam {
         float Pos_degeneracy_threshold;
         float Ori_degeneracy_threshold;
         float Visual_confidence_factor;
-        
-        std::string map_dir;
+
+        std::string relocalization_map_path;
         float init_x;
         float init_y;
         float init_z;

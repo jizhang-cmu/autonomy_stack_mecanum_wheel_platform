@@ -22,7 +22,9 @@
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/common/transforms.h>
+#include <pcl/io/pcd_io.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include "rclcpp/rclcpp.hpp"
@@ -64,7 +66,7 @@ namespace arise_slam {
         float shift_avg_ratio;
         bool shift_undistortion;
         float yaw_ratio;
-        std::string map_dir;
+        std::string relocalization_map_path;
         bool local_mode;
         float init_x;
         float init_y;
@@ -136,7 +138,10 @@ namespace arise_slam {
         void
         visualOdometryHandler(const nav_msgs::msg::Odometry::SharedPtr visualOdometry);
 
-        // void 
+        void
+        initialPoseHandler(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr initialPose);
+
+        // void
         // takeoffAlignmentHandler(const takeoff_manager::TakeoffAlignmentConstPtr &msg);
 
         void
@@ -174,10 +179,16 @@ namespace arise_slam {
         bool
         readPointCloud();
 
-        void 
+        bool
+        loadMapFromFile(const std::string& map_path);
+
+        void
+        resetSLAMState(const Transformd& new_pose);
+
+        void
         saveLocalizationPose(double timestamp,Transformd &T_w_lidar, const std::string& parentPath);
 
-        void 
+        void
         readLocalizationPose(const std::string& parentPath);
 
         void
@@ -210,6 +221,7 @@ namespace arise_slam {
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subLaserCloudFullRes;
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subLaserRawdata;
         rclcpp::Subscription<arise_slam_mid360_msgs::msg::LaserFeature>::SharedPtr subLaserFeatureInfo;
+        rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr subInitialPose;
         // rclcpp::Subscription<>::SharedPtr subTakeoffAlignment;
 
         // Publisher
@@ -265,6 +277,10 @@ namespace arise_slam {
         bool imuorientationAvailable = false;
         bool lastimuodomAvaliable=false;
         bool imu_initialized = false;
+        bool pending_relocalization = false;
+
+        std::mutex relocalization_mutex;
+        Transformd pending_initial_pose;
 
         float poseX = 0;
         float poseY = 0;

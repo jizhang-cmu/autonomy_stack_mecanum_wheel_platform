@@ -2,9 +2,40 @@
 
 ## Quick Start
 
-### Setting Robot Configuration
+### Environment Variables
+
+The autonomy stack uses environment variables for easy configuration:
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `ROBOT_CONFIG_PATH` | Robot-specific configuration | `mechanum_drive`, `unitree/unitree_g1` |
+| `MAP_PATH` | Map directory for localization | `/path/to/maps/warehouse` |
+
+**Setting Robot Configuration:**
 ```bash
 export ROBOT_CONFIG_PATH="mechanum_drive"  # or "unitree/unitree_g1" or "unitree/unitree_b1"
+```
+
+**Setting Map Directory (for Localization Mode):**
+```bash
+export MAP_PATH="/path/to/your/maps/warehouse"  # Automatically enables localization mode
+```
+When `MAP_DIR` is set, the system automatically:
+- Enables localization mode for SLAM (uses pre-built map)
+- Loads `$MAP_PATH.pcd` for SLAM
+- Loads `$MAP_PATH_tomogram.pickle` for PCT route planner
+- Falls back to SLAM/mapping mode if `MAP_PATH` is not set
+
+**Typical Workflow:**
+```bash
+# For mapping a new environment
+export ROBOT_CONFIG_PATH="mechanum_drive"
+./system_real_robot_with_route_planner.sh
+
+# For navigating in a known environment
+export ROBOT_CONFIG_PATH="mechanum_drive"
+export MAP_DIR="/home/user/maps/warehouse"
+./system_real_robot_with_route_planner.sh
 ```
 
 ## ROS Topics
@@ -162,13 +193,42 @@ The robot automatically adjusts speed based on:
 ## SLAM Configuration
 
 ### Localization Mode
-Set in `livox_mid360.yaml`:
-```yaml
-local_mode: true
-init_x: 0.0
-init_y: 0.0
-init_yaw: 0.0
+
+**Method 1: Environment Variable (Recommended)**
+```bash
+export MAP_DIR="/path/to/maps/warehouse"
+./system_real_robot_with_route_planner.sh
 ```
+This automatically:
+- Enables `local_mode=true`
+- Loads map from `$MAP_DIR/map.pcd`
+- Loads tomogram from `$MAP_DIR/map.pickle` (for PCT planner)
+
+**Method 2: Launch Arguments (Override)**
+```bash
+ros2 launch arise_slam_mid360 arize_slam.launch.py \
+  local_mode:=true \
+  relocalization_map_path:=/path/to/map.pcd \
+  init_x:=0.0 init_y:=0.0 init_yaw:=0.0
+```
+
+**Method 3: RViz Re-localization**
+1. Launch with a map loaded (using either method above)
+2. In RViz, click "2D Pose Estimate" button
+3. Click and drag on the map to set new initial pose
+4. SLAM will automatically reset and re-localize
+
+### Map File Structure
+When using `MAP_DIR`, organize files as:
+```
+$MAP_DIR/
+├── map.pcd       # SLAM point cloud map (required)
+└── map.pickle    # PCT planner tomogram (required for route planning)
+```
+
+### Supported Map Formats
+- **SLAM**: `.pcd` (Point Cloud Data) or `.txt` (legacy text format)
+- **PCT Planner**: `.pickle` (tomogram file)
 
 ### Mapping Performance
 ```yaml
