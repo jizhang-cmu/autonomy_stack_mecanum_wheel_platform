@@ -810,6 +810,7 @@ int main(int argc, char** argv)
       if (pathRange < minPathRange) pathRange = minPathRange;
       float relativeGoalDis = adjacentRange;
 
+      int preSelectedGroupID = -1;
       if (autonomyMode) {
         float relativeGoalX = ((goalX - vehicleX) * cosVehicleYaw + (goalY - vehicleY) * sinVehicleYaw);
         float relativeGoalY = (-(goalX - vehicleX) * sinVehicleYaw + (goalY - vehicleY) * cosVehicleYaw);
@@ -854,8 +855,13 @@ int main(int argc, char** argv)
           }
 
           if (!twoWayDrive) {
-            if (joyDir > 95.0) joyDir = 95.0;
-            else if (joyDir < -95.0) joyDir = -95.0;
+            if (joyDir > 95.0) {
+              joyDir = 95.0;
+              preSelectedGroupID = 0;
+            } else if (joyDir < -95.0) {
+              joyDir = -95.0;
+              preSelectedGroupID = 6;
+            }
           }
         }
       } else {
@@ -981,17 +987,21 @@ int main(int argc, char** argv)
           }
         }
 
-        float maxScore = 0;
         int selectedGroupID = -1;
-        for (int i = 0; i < 36 * groupNum; i++) {
-          int rotDir = int(i / groupNum);
-          float rotAng = (10.0 * rotDir - 180.0) * PI / 180;
-          float rotDeg = 10.0 * rotDir;
-          if (rotDeg > 180.0) rotDeg -= 360.0;
-          if (maxScore < clearPathPerGroupScore[i] && ((rotAng * 180.0 / PI > minObsAngCW && rotAng * 180.0 / PI < minObsAngCCW) || 
-              (rotDeg > minObsAngCW && rotDeg < minObsAngCCW && twoWayDrive) || !checkRotObstacle)) {
-            maxScore = clearPathPerGroupScore[i];
-            selectedGroupID = i;
+        if (preSelectedGroupID >= 0) {
+          selectedGroupID = preSelectedGroupID;
+        } else {
+          float maxScore = 0;
+          for (int i = 0; i < 36 * groupNum; i++) {
+            int rotDir = int(i / groupNum);
+            float rotAng = (10.0 * rotDir - 180.0) * PI / 180;
+            float rotDeg = 10.0 * rotDir;
+            if (rotDeg > 180.0) rotDeg -= 360.0;
+            if (maxScore < clearPathPerGroupScore[i] && ((rotAng * 180.0 / PI > minObsAngCW && rotAng * 180.0 / PI < minObsAngCCW) || 
+                (rotDeg > minObsAngCW && rotDeg < minObsAngCCW && twoWayDrive) || !checkRotObstacle)) {
+              maxScore = clearPathPerGroupScore[i];
+              selectedGroupID = i;
+            }
           }
         }
 
