@@ -1,0 +1,5 @@
+unitree_control:
+  ros__parameters:
+    robot_ip: "192.168.8.181"
+    connection_method: "LocalSTA"  # Options: LocalAP, LocalSTA, Remote
+    control_mode: "sport_cmd"  # Options: sport_cmd, wireless_controller
