@@ -11,7 +11,7 @@
     <param name="limitGroundLift" value="false" />
     <param name="maxGroundLift" value="0.15" />
     <param name="clearDyObs" value="true" />
-    <param name="minDyObsDis" value="0.15" />
+    <param name="minDyObsDis" value="0.14" />
     <param name="absDyObsRelZThre" value="0.2" />
     <param name="minDyObsVFOV" value="-30.0" />
     <param name="maxDyObsVFOV" value="35.0" />
