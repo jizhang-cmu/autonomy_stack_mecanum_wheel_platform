@@ -16,7 +16,7 @@
     <param name="minDyObsVFOV" value="-30.0" />
     <param name="maxDyObsVFOV" value="35.0" />
     <param name="minDyObsPointNum" value="1" />
-    <param name="minOutOfFovPointNum" value="3" />
+    <param name="minOutOfFovPointNum" value="20" />
     <param name="obstacleHeightThre" value="0.1" />
     <param name="noDataObstacle" value="false" />
     <param name="noDataBlockSkipNum" value="0" />
