@@ -4,6 +4,11 @@ sensorMountingOffsets:
     sensorOffsetX: 0.2
     sensorOffsetY: 0.0
     sensorOffsetZ: 0.1
+    # Camera offsets relative to sensor frame
+    cameraOffsetX: 0.1
+    cameraOffsetY: 0.0
+    cameraOffsetZ: -0.04
+    cameraOffsetPitch: 0.2094395
 
 # SLAM sensor configuration
 feature_extraction_node:
@@ -26,10 +31,6 @@ localPlanner:
 
     # obstacle height threshold
     obstacleHeightThre: 0.1 # 0.1 for flat terrain
-
-    # Sensor offset
-    sensorOffsetX: 0.2
-    sensorOffsetY: 0.0
   
     # Vehicle dimensions
     vehicleLength: 0.6

@@ -52,17 +52,24 @@ def generate_launch_description():
         default_value='0.0'
     )
 
-    cameraOffsetZ_arg = DeclareLaunchArgument(
-        'cameraOffsetZ',
-        default_value='0.0'
-    )
-
     # Read sensor offsets from robot config YAML
     sensor_offsets = {
         'sensorOffsetX': 0.0,
         'sensorOffsetY': 0.0,
         'sensorOffsetZ': 0.0
     }
+
+    # Camera offsets (relative to sensor frame)
+    camera_offsets = {
+        'cameraOffsetX': 0.0,
+        'cameraOffsetY': 0.0,
+        'cameraOffsetZ': 0.0,
+        'cameraOffsetRoll': 0.0,
+        'cameraOffsetPitch': 0.0,
+        'cameraOffsetYaw': 0.0
+    }
+
+    camera_link = 'camera_link'
 
     try:
         robot_config_path = os.path.join(local_planner_share, 'config', robot_config_env + '.yaml')
@@ -75,6 +82,11 @@ def generate_launch_description():
             for key in sensor_offsets.keys():
                 if key in mounting_offsets:
                     sensor_offsets[key] = mounting_offsets[key]
+            for key in camera_offsets.keys():
+                if key in mounting_offsets:
+                    camera_offsets[key] = mounting_offsets[key]
+            if 'cameraLink' in mounting_offsets:
+                camera_link = mounting_offsets['cameraLink']
     except Exception as e:
         print(f"Warning: Could not read robot config from {robot_config_env}.yaml, using defaults: {e}")
 
@@ -193,9 +205,13 @@ def generate_launch_description():
         executable='static_transform_publisher',
         name='sensorTransPublisher',
         arguments=[
-            '0', '0', LaunchConfiguration('cameraOffsetZ'),
-            '-1.5707963', '0', '-1.5707963',
-            '/sensor', '/camera'
+            str(camera_offsets['cameraOffsetX']),
+            str(camera_offsets['cameraOffsetY']),
+            str(camera_offsets['cameraOffsetZ']),
+            str(camera_offsets['cameraOffsetRoll']),
+            str(camera_offsets['cameraOffsetPitch']),
+            str(camera_offsets['cameraOffsetYaw']),
+            '/sensor', camera_link
         ]
     )
 
@@ -207,7 +223,6 @@ def generate_launch_description():
         joyToSpeedDelay_arg,
         goalX_arg,
         goalY_arg,
-        cameraOffsetZ_arg,
         localPlanner_node,
         pathFollower_node,
         vehicleTransPublisher_node,
