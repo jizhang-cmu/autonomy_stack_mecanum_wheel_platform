@@ -568,7 +568,7 @@ int main(int argc, char **argv) {
               indY < planarVoxelWidth) {
             float h1 = point.z - planarVoxelElev[planarVoxelWidth * indX + indY];
             if (h1 > obstacleHeightThre) {
-              planarVoxelDyObs[planarVoxelWidth * indX + indY] = 0;
+              planarVoxelDyObs[planarVoxelWidth * indX + indY] = -1;
             }
           }
         }
@@ -591,7 +591,8 @@ int main(int argc, char **argv) {
 
           if (indX >= 0 && indX < planarVoxelWidth && indY >= 0 &&
               indY < planarVoxelWidth) {
-            if (planarVoxelDyObs[planarVoxelWidth * indX + indY] < minDyObsPointNum || !clearDyObs) {
+            int dyObsPointNum = planarVoxelDyObs[planarVoxelWidth * indX + indY];
+            if (dyObsPointNum < minDyObsPointNum || !clearDyObs) {
               float disZ =
                   point.z - planarVoxelElev[planarVoxelWidth * indX + indY];
               if (considerDrop)
@@ -600,7 +601,7 @@ int main(int argc, char **argv) {
                   planarPointElev[planarVoxelWidth * indX + indY].size();
               int outOfFovPointNum = planarVoxelOutOfFov[planarVoxelWidth * indX + indY];
               if (disZ >= 0 && disZ < vehicleHeight && planarPointElevSize >= minBlockPointNum &&
-                  (outOfFovPointNum <= 0 || outOfFovPointNum >= minOutOfFovPointNum || disZ < obstacleHeightThre)) {
+                  (outOfFovPointNum >= minOutOfFovPointNum || disZ < obstacleHeightThre || dyObsPointNum < 0 || !clearDyObs)) {
                 terrainCloudElev->push_back(point);
                 terrainCloudElev->points[terrainCloudElevSize].intensity = disZ;
 
