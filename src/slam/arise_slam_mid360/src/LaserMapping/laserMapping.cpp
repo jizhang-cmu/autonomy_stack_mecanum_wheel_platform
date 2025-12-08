@@ -64,11 +64,6 @@ namespace arise_slam {
             std::bind(&laserMapping::visualOdometryHandler, this,
                         std::placeholders::_1), sub_options);
 
-        subInitialPose = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>(
-            "/initialpose", 10,
-            std::bind(&laserMapping::initialPoseHandler, this,
-                        std::placeholders::_1), sub_options);
-
         pubLaserCloudSurround = this->create_publisher<sensor_msgs::msg::PointCloud2>(
             ProjectName+"/laser_cloud_surround", 2);
 
@@ -411,72 +406,6 @@ namespace arise_slam {
         << odom.roll << " " <<odom.pitch << " " << odom.yaw << odom.timestamp-odometryResults[0].timestamp << std::endl;
 
         outFile.close();
-    }
-
-    void laserMapping::resetSLAMState(const Transformd& new_pose) {
-        RCLCPP_INFO(this->get_logger(), "\033[1;32m===== Resetting SLAM State =====\033[0m");
-        RCLCPP_INFO(this->get_logger(), "New pose: [%.2f, %.2f, %.2f]",
-                    new_pose.pos.x(), new_pose.pos.y(), new_pose.pos.z());
-
-        // Update current pose
-        T_w_lidar = new_pose;
-        t_w_curr = new_pose.pos;
-        q_w_curr = new_pose.rot;
-
-        // Reset SLAM state
-        slam.T_w_lidar = new_pose;
-        slam.last_T_w_lidar = new_pose;
-
-        // Update local map origin
-        slam.localMap.setOrigin(new_pose.pos);
-
-        // Reset transformation tracking
-        q_wmap_wodom = new_pose.rot;
-        t_wmap_wodom = new_pose.pos;
-
-        // Reset initialization flag to force re-initialization
-        initialization = false;
-        startupCount = 10;  // Give it a few frames to stabilize
-
-        RCLCPP_INFO(this->get_logger(), "\033[1;32m===== SLAM State Reset Complete =====\033[0m");
-    }
-
-    void laserMapping::initialPoseHandler(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr initialPose) {
-        RCLCPP_INFO(this->get_logger(), "\033[1;33m===== Received Initial Pose from RViz =====\033[0m");
-
-        std::lock_guard<std::mutex> lock(relocalization_mutex);
-
-        // Extract pose from message
-        const auto& pose = initialPose->pose.pose;
-        Transformd new_pose;
-        new_pose.pos = Eigen::Vector3d(pose.position.x, pose.position.y, pose.position.z);
-        new_pose.rot = Eigen::Quaterniond(pose.orientation.w, pose.orientation.x,
-                                          pose.orientation.y, pose.orientation.z);
-
-        RCLCPP_INFO(this->get_logger(), "Initial pose: position=[%.2f, %.2f, %.2f], orientation=[%.3f, %.3f, %.3f, %.3f]",
-                    pose.position.x, pose.position.y, pose.position.z,
-                    pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-
-        // If we're in localization mode, ensure map is ready for relocalization
-        if (slam.local_mode) {
-            // If no map is loaded yet, try to load it
-            if (laserCloudPrior->empty()) {
-                RCLCPP_INFO(this->get_logger(), "Loading map for relocalization...");
-                if (!loadMapFromFile(slam.relocalization_map_path)) {
-                    RCLCPP_ERROR(this->get_logger(), "Failed to load map for relocalization!");
-                    return;
-                }
-            }
-
-            // Map will be automatically reinitialized on next scan via resetSLAMState
-            RCLCPP_INFO(this->get_logger(), "Map ready with %zu points", laserCloudPrior->size());
-        }
-
-        // Store the pending pose and set flag
-        pending_initial_pose = new_pose;
-        pending_relocalization = true;
-
-        RCLCPP_INFO(this->get_logger(), "\033[1;33m===== Re-localization will be applied on next scan =====\033[0m");
     }
 
     void laserMapping::transformAssociateToMap(Transformd T_w_pre, Transformd T_wodom_curr, Transformd T_wodom_pre) {
@@ -1285,16 +1214,6 @@ namespace arise_slam {
                 q_wodom_curr.w() = IMUPrediction.w();
 
                 imuorientationAvailable=true;
-
-                // Check for pending relocalization request
-                {
-                    std::lock_guard<std::mutex> lock(relocalization_mutex);
-                    if (pending_relocalization) {
-                        resetSLAMState(pending_initial_pose);
-                        pending_relocalization = false;
-                        RCLCPP_INFO(this->get_logger(), "\033[1;32mRelocalization applied!\033[0m");
-                    }
-                }
 
                 setInitialGuess();
                 Transformd T_lidar_w = T_w_lidar.inverse();
