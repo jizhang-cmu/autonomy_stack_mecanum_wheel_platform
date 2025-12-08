@@ -270,6 +270,7 @@ void joystickHandler(const sensor_msgs::msg::Joy::ConstSharedPtr joy)
 
 void goalHandler(const geometry_msgs::msg::PointStamped::ConstSharedPtr goal)
 {
+  goalReached = false;
   goalX = goal->point.x;
   goalY = goal->point.y;
 }
