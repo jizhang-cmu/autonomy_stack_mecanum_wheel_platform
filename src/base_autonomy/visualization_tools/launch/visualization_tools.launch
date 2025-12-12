@@ -8,7 +8,7 @@
     <param name="pcdFile" value="$(find-pkg-prefix vehicle_simulator)/log/pointcloud" />
     <param name="mapFile" value="$(find-pkg-prefix vehicle_simulator)/mesh/$(var world_name)/map.ply" />
     <param name="overallMapVoxelSize" value="0.1" />
-    <param name="exploredAreaVoxelSize" value="0.1" />
+    <param name="exploredAreaVoxelSize" value="0.05" />
     <param name="exploredVolumeVoxelSize" value="1.0" />
     <param name="transInterval" value="0.1" />
     <param name="yawInterval" value="0.17" />
