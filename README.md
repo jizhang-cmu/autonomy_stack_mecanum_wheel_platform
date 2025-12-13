@@ -345,7 +345,9 @@ Users can set up AI models on the base station computer to process the transmitt
 
 - The sensor configuration leaves 1.2m of blind area in front of the vehicle at ground level. If something low jumps into the area, the system would not know.
 
-- Occasionally, we observe SLAM drift which can cause issues with the terrain map and collision avoidance. Symptoms are vehicle getting stuck or moving in strange directions and not following waypoints. Users can press the 'clear-terrain-map button' on the joystick controller to reset the terrain map. At the system start up, if the SLAM module gives a warning saying the lidar and IMU data are out of synchronization, please restart the system.
+- Occasionally, we observe SLAM drift which can cause issues with the terrain map and collision avoidance. Symptoms are vehicle getting stuck or moving in strange directions and not following waypoints. Users can press the 'clear-terrain-map button' on the joystick controller to reset the terrain map. 
+
+- At the system startup, if the SLAM module gives a warning saying the lidar and IMU data are out of synchronization or the vehicle pose jumps around, please kill all the ROS nodes on the computer using `sudo pkill -9 -f '/opt/ros/.*\/lib\/|\/install\/.*\/lib\/|_ros2_daemon|^[[:space:]]*ros2$'` and restart the system.
 
 - If changing between Mecanum wheels and standard wheels, go to the 'src/base_autonomy/local_planner/launch/local_planner.launch' file and change 'config' between 'omniDir' and 'standard' accordingly. When installing the Mecanum wheels, please make sure to install them in the same configuration as in the pictures.
 
