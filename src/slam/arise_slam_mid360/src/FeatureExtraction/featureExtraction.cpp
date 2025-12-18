@@ -183,6 +183,9 @@ namespace arise_slam {
         this->declare_parameter<int>("provide_point_time");
         this->declare_parameter<std::string>("sensor");
         this->declare_parameter<bool>("debug_view", false);
+        this->declare_parameter<double>("imu_acc_x_offset");
+        this->declare_parameter<double>("imu_acc_y_offset");
+        this->declare_parameter<double>("imu_acc_z_offset");
         this->declare_parameter<double>("imu_acc_x_limit");
         this->declare_parameter<double>("imu_acc_y_limit");
         this->declare_parameter<double>("imu_acc_z_limit");
@@ -206,6 +209,9 @@ namespace arise_slam {
         config_.provide_point_time = this->get_parameter("provide_point_time").as_int();
         config_.use_dynamic_mask = this->get_parameter("use_dynamic_mask").as_bool(); 
         config_.debug_view_enabled = get_parameter("debug_view").as_bool();
+        config_.imu_acc_x_offset = get_parameter("imu_acc_x_offset").as_double();
+        config_.imu_acc_y_offset = get_parameter("imu_acc_y_offset").as_double();
+        config_.imu_acc_z_offset = get_parameter("imu_acc_z_offset").as_double();
         config_.imu_acc_x_limit = get_parameter("imu_acc_x_limit").as_double();
         config_.imu_acc_y_limit = get_parameter("imu_acc_y_limit").as_double();
         config_.imu_acc_z_limit = get_parameter("imu_acc_z_limit").as_double();
@@ -1190,6 +1196,10 @@ namespace arise_slam {
 
     void featureExtraction::imu_Handler(const sensor_msgs::msg::Imu::SharedPtr msg_in)
     {   
+        msg_in->linear_acceleration.x += config_.imu_acc_x_offset;
+        msg_in->linear_acceleration.y += config_.imu_acc_y_offset;
+        msg_in->linear_acceleration.z += config_.imu_acc_z_offset;
+
         if (config_.lidar_flip) 
         {
             msg_in->linear_acceleration.y *= -1.0;

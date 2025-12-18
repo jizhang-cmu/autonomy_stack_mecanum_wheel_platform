@@ -37,7 +37,10 @@ feature_extraction_node:
         provide_imu_laser_extrinsic: true
         provide_point_time: 1
         debug_view: false
-        
+
+        imu_acc_x_offset: 0.0
+        imu_acc_y_offset: 0.0
+        imu_acc_z_offset: 0.0
         imu_acc_x_limit: 1.0
         imu_acc_y_limit: 1.0
         imu_acc_z_limit: 1.0
@@ -113,6 +116,9 @@ imu_preintegration_node:
         g_norm: 9.80511    # 0 means you need to provide both imu-camera and laser-camera extrinsic
         use_imu_roll_pitch: false
         lidar_flip: false
+        imu_acc_x_offset: 0.0
+        imu_acc_y_offset: 0.0
+        imu_acc_z_offset: 0.0
         imu_acc_x_limit: 0.3
         imu_acc_y_limit: 0.2
         imu_acc_z_limit: 0.1
