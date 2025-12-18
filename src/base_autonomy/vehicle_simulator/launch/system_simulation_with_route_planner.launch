@@ -22,7 +22,7 @@ def generate_launch_description():
 
   declare_use_pct_planner = DeclareLaunchArgument(
     'use_pct_planner',
-    default_value='true',
+    default_value='false',
     description='Use PCT Planner instead of FAR Planner (true/false)'
   )
   declare_route_planner_config = DeclareLaunchArgument('route_planner_config', default_value='indoor', description='FAR Planner config')

@@ -9,22 +9,24 @@ The autonomy stack uses environment variables for easy configuration:
 | Variable | Purpose | Example |
 |----------|---------|---------|
 | `ROBOT_CONFIG_PATH` | Robot-specific configuration | `mechanum_drive`, `unitree/unitree_g1` |
-| `MAP_PATH` | Map directory for localization | `/path/to/maps/warehouse` |
+| `MAP_PATH` | Map **file prefix** for localization | `/home/user/maps/warehouse/map` |
 
 **Setting Robot Configuration:**
 ```bash
 export ROBOT_CONFIG_PATH="mechanum_drive"  # or "unitree/unitree_g1" or "unitree/unitree_b1"
 ```
 
-**Setting Map Directory (for Localization Mode):**
+**Setting Map (for Localization Mode):**
 ```bash
-export MAP_PATH="/path/to/your/maps/warehouse"  # Automatically enables localization mode
+export MAP_PATH="/home/user/maps/warehouse/map"  # Enables localization mode
 ```
-When `MAP_DIR` is set, the system automatically:
+When `MAP_PATH` is set, the system automatically:
+
 - Enables localization mode for SLAM (uses pre-built map)
-- Loads `$MAP_PATH.pcd` for SLAM
-- Loads `$MAP_PATH_tomogram.pickle` for PCT route planner
-- Falls back to SLAM/mapping mode if `MAP_PATH` is not set
+- Loads `$MAP_PATH.pcd` (or legacy `.txt`) for SLAM
+- Loads `$MAP_PATH_tomogram.pickle` for the PCT route planner
+
+If `MAP_PATH` is not set, the system runs in SLAM/mapping mode and the PCT planner runs in SLAM mode.
 
 **Typical Workflow:**
 ```bash
@@ -34,8 +36,31 @@ export ROBOT_CONFIG_PATH="mechanum_drive"
 
 # For navigating in a known environment
 export ROBOT_CONFIG_PATH="mechanum_drive"
-export MAP_DIR="/home/user/maps/warehouse"
+export MAP_PATH="/home/user/maps/warehouse/map"
 ./system_real_robot_with_route_planner.sh
+```
+
+### Map Storage (SLAM + PCT)
+
+Recommended map layout:
+
+```text
+/home/user/maps/warehouse/
+├── map.pcd
+└── map_tomogram.pickle
+```
+
+Set:
+
+```bash
+export MAP_PATH="/home/user/maps/warehouse/map"
+```
+
+To generate the tomogram from a PCD:
+
+```bash
+source install/setup.bash
+ros2 run pct_planner pcd_to_tomogram.py /home/user/maps/warehouse/map.pcd -o /home/user/maps/warehouse/map_tomogram.pickle
 ```
 
 ## ROS Topics
@@ -50,6 +75,15 @@ export MAP_DIR="/home/user/maps/warehouse"
 | `/joy` | `sensor_msgs/Joy` | Joystick input |
 | `/navigation_boundary` | `geometry_msgs/PolygonStamped` | Set navigation boundaries |
 | `/added_obstacles` | `sensor_msgs/PointCloud2` | Virtual obstacles |
+| `/speed` | `std_msgs/Float32` | Desired speed input used by the base autonomy controller (m/s) |
+| `/stop` | `std_msgs/Int8` | Safety stop input: `>=1` forces stop; `>=2` also forces yaw-rate stop |
+| `/clicked_point` | `geometry_msgs/PointStamped` | RViz “Publish Point” input (used by PCT tools/visualizer) |
+
+### Internal Control Topics
+
+| Topic | Type | Description |
+|-------|------|-------------|
+| `/slow_down` | `std_msgs/Int8` | Slowdown level used by the base autonomy controller (0–3) |
 
 ### Output Topics (Status)
 
@@ -60,8 +94,17 @@ export MAP_DIR="/home/user/maps/warehouse"
 | `/terrain_map` | `sensor_msgs/PointCloud2` | Local terrain map |
 | `/terrain_map_ext` | `sensor_msgs/PointCloud2` | Extended terrain map |
 | `/path` | `nav_msgs/Path` | Local path being followed |
-| `/cmd_vel` | `geometry_msgs/Twist` | Velocity commands to motors |
+| `/cmd_vel` | `geometry_msgs/TwistStamped` | Velocity commands to motors |
 | `/goal_reached` | `std_msgs/Bool` | True when goal reached, false when cancelled/new goal |
+| `/global_path` | `nav_msgs/Path` | Global path from route planner (PCT planner) |
+| `/tomogram` | `sensor_msgs/PointCloud2` | Tomogram visualization (PCT planner) |
+| `/tomogram_debug_grid` | `nav_msgs/OccupancyGrid` | Debug occupancy grid (PCT planner) |
+
+### Services
+
+| Service | Type | Description |
+|---------|------|-------------|
+| `/build_tomogram` | `std_srvs/Trigger` | Build tomogram from `/explored_areas` (PCT planner in SLAM mode) |
 
 ### Map Topics
 
@@ -86,153 +129,70 @@ ros2 topic pub /way_point geometry_msgs/msg/PointStamped "{
 ros2 topic pub /cancel_goal std_msgs/msg/Bool "data: true" --once
 ```
 
+### Stop the Robot (Safety Stop)
+
+```bash
+# 1 = stop translation, 2 = also stop rotation
+ros2 topic pub /stop std_msgs/msg/Int8 "data: 2" --once
+```
+
 ### Monitor Robot State
 ```bash
 ros2 topic echo /state_estimation
 ```
 
-## Configuration Parameters
+## Route Planner Notes (FAR vs PCT)
 
-### Vehicle Parameters (`localPlanner`)
+The stack supports two global route planners:
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `vehicleLength` | 0.5 | Robot length (m) |
-| `vehicleWidth` | 0.5 | Robot width (m) |
-| `maxSpeed` | 0.875 | Maximum speed (m/s) |
-| `autonomySpeed` | 0.875 | Autonomous mode speed (m/s) |
+- **FAR planner** (default)
+- **PCT planner** (optional)
 
-### Goal Tolerance Parameters
+When using the PCT planner:
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `goalReachedThreshold` | 0.3-0.5 | Distance to consider goal reached (m) |
-| `goalClearRange` | 0.35-0.6 | Extra clearance around goal (m) |
-| `goalBehindRange` | 0.35-0.8 | Stop pursuing if goal behind within this distance (m) |
-| `omniDirGoalThre` | 1.0 | Distance for omnidirectional approach (m) |
+- **Service**: `/build_tomogram` (`std_srvs/Trigger`) builds a tomogram in SLAM mode from `/explored_areas`.
+- **Output**: `/global_path` (`nav_msgs/Path`) planned global path.
+- **Debug**: `/tomogram`, `/tomogram_debug_grid`.
 
-### Obstacle Avoidance
+See `src/route_planner/PCT_planner/README.md` for details and dependencies.
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `obstacleHeightThre` | 0.1-0.2 | Height threshold for obstacles (m) |
-| `adjacentRange` | 3.5 | Sensor range for planning (m) |
-| `minRelZ` | -0.4 | Minimum relative height to consider (m) |
-| `maxRelZ` | 0.3 | Maximum relative height to consider (m) |
+## SLAM / Localization Notes
 
-### Path Planning
+### Localization Mode (MAP_PATH)
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `pathScale` | 0.875 | Path resolution scale |
-| `minPathScale` | 0.675 | Minimum path scale when blocked |
-| `minPathRange` | 0.8 | Minimum planning range (m) |
-| `dirThre` | 90.0 | Direction threshold (degrees) |
+Set `MAP_PATH` to a file prefix to enable localization:
 
-### Control Parameters (`pathFollower`)
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `lookAheadDis` | 0.5 | Look-ahead distance (m) |
-| `maxAccel` | 2.0 | Maximum acceleration (m/s²) |
-| `slowDwnDisThre` | 0.875 | Slow down distance threshold (m) |
-
-### SLAM Blind Zones (`feature_extraction_node`)
-
-| Parameter | Mecanum | Description |
-|-----------|---------|-------------|
-| `blindFront` | 0.1 | Front blind zone (m) |
-| `blindBack` | -0.2 | Back blind zone (m) |
-| `blindLeft` | 0.1 | Left blind zone (m) |
-| `blindRight` | -0.1 | Right blind zone (m) |
-| `blindDiskRadius` | 0.4 | Cylindrical blind zone radius (m) |
-
-## Operating Modes
-
-### Mode Control
-- **Joystick L2**: Hold for autonomy mode
-- **Joystick R2**: Hold to disable obstacle checking
-
-### Speed Control
-The robot automatically adjusts speed based on:
-1. Obstacle proximity
-2. Path complexity
-3. Goal distance
-
-## Tuning Guide
-
-### For Tighter Navigation
-- Decrease `goalReachedThreshold` (e.g., 0.2)
-- Decrease `goalClearRange` (e.g., 0.3)
-- Decrease `vehicleLength/Width` slightly
-
-### For Smoother Navigation
-- Increase `goalReachedThreshold` (e.g., 0.5)
-- Increase `lookAheadDis` (e.g., 0.7)
-- Decrease `maxAccel` (e.g., 1.5)
-
-### For Aggressive Obstacle Avoidance
-- Increase `obstacleHeightThre` (e.g., 0.15)
-- Increase `adjacentRange` (e.g., 4.0)
-- Increase blind zone parameters
-
-## Common Issues
-
-### Robot Oscillates at Goal
-- Increase `goalReachedThreshold`
-- Increase `goalBehindRange`
-
-### Robot Stops Too Far from Goal
-- Decrease `goalReachedThreshold`
-- Decrease `goalClearRange`
-
-### Robot Hits Low Obstacles
-- Decrease `obstacleHeightThre`
-- Adjust `minRelZ` to include lower points
-
-## SLAM Configuration
-
-### Localization Mode
-
-**Method 1: Environment Variable (Recommended)**
 ```bash
-export MAP_DIR="/path/to/maps/warehouse"
-./system_real_robot_with_route_planner.sh
+export MAP_PATH="/home/user/maps/warehouse/map"
 ```
-This automatically:
-- Enables `local_mode=true`
-- Loads map from `$MAP_DIR/map.pcd`
-- Loads tomogram from `$MAP_DIR/map.pickle` (for PCT planner)
 
-**Method 2: Launch Arguments (Override)**
+This causes:
+
+- SLAM to load: `/home/user/maps/warehouse/map.pcd` (or legacy `.txt`)
+- PCT planner to load: `/home/user/maps/warehouse/map_tomogram.pickle`
+
+### Launch Argument Overrides
+
+SLAM (explicit map path):
+
 ```bash
 ros2 launch arise_slam_mid360 arize_slam.launch.py \
   local_mode:=true \
-  relocalization_map_path:=/path/to/map.pcd \
+  relocalization_map_path:=/home/user/maps/warehouse/map.pcd \
   init_x:=0.0 init_y:=0.0 init_yaw:=0.0
 ```
 
-**Method 3: RViz Re-localization**
-1. Launch with a map loaded (using either method above)
-2. In RViz, click "2D Pose Estimate" button
-3. Click and drag on the map to set new initial pose
-4. SLAM will automatically reset and re-localize
+PCT planner (explicit tomogram path):
 
-### Map File Structure
-When using `MAP_DIR`, organize files as:
-```
-$MAP_DIR/
-├── map.pcd       # SLAM point cloud map (required)
-└── map.pickle    # PCT planner tomogram (required for route planning)
+```bash
+ros2 launch pct_planner pct_planner.launch.py \
+  local_mode:=true \
+  tomogram_path:=/home/user/maps/warehouse/map_tomogram.pickle
 ```
 
-### Supported Map Formats
-- **SLAM**: `.pcd` (Point Cloud Data) or `.txt` (legacy text format)
-- **PCT Planner**: `.pickle` (tomogram file)
+### RViz Re-localization
 
-### Mapping Performance
-```yaml
-mapping_line_resolution: 0.1   # Decrease for higher quality
-mapping_plane_resolution: 0.2  # Decrease for higher quality
-max_iterations: 5               # Increase for better accuracy
-```
+1. Launch with a map loaded (MAP_PATH or explicit launch args)
+2. In RViz, click **2D Pose Estimate**
+3. Click/drag to set the initial pose
+4. SLAM will reset and re-localize
