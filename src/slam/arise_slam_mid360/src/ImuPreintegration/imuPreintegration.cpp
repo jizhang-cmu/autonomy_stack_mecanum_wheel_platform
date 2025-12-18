@@ -127,6 +127,9 @@ namespace arise_slam {
         this->declare_parameter<bool>("use_imu_roll_pitch",true);
         this->declare_parameter<bool>("lidar_flip",false);
         this->declare_parameter<std::string>("sensor");
+        this->declare_parameter<double>("imu_acc_x_offset", 0.0);
+        this->declare_parameter<double>("imu_acc_y_offset", 0.0);
+        this->declare_parameter<double>("imu_acc_z_offset", 0.0);
         this->declare_parameter<double>("imu_acc_x_limit", 1.0);
         this->declare_parameter<double>("imu_acc_y_limit", 1.0);
         this->declare_parameter<double>("imu_acc_z_limit", 1.0);
@@ -140,6 +143,9 @@ namespace arise_slam {
         config_.smooth_factor = this->get_parameter("smooth_factor").as_double();
         config_.use_imu_roll_pitch = this->get_parameter("use_imu_roll_pitch").as_bool();
         config_.lidar_flip = this->get_parameter("lidar_flip").as_bool();
+        config_.imu_acc_x_offset = this->get_parameter("imu_acc_x_offset").as_double();
+        config_.imu_acc_y_offset = this->get_parameter("imu_acc_y_offset").as_double();
+        config_.imu_acc_z_offset = this->get_parameter("imu_acc_z_offset").as_double();
         config_.imu_acc_x_limit = this->get_parameter("imu_acc_x_limit").as_double();
         config_.imu_acc_y_limit = this->get_parameter("imu_acc_y_limit").as_double();
         config_.imu_acc_z_limit = this->get_parameter("imu_acc_z_limit").as_double();
@@ -844,6 +850,10 @@ namespace arise_slam {
 
     void imuPreintegration::imuHandler(const sensor_msgs::msg::Imu::SharedPtr imu_raw) 
     {
+        imu_raw->linear_acceleration.x += config_.imu_acc_x_offset;
+        imu_raw->linear_acceleration.y += config_.imu_acc_y_offset;
+        imu_raw->linear_acceleration.z += config_.imu_acc_z_offset;
+
         if (config_.lidar_flip) 
         {
           imu_raw->linear_acceleration.y *= -1.0;

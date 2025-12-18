@@ -57,6 +57,9 @@ namespace arise_slam {
         bool lidar_flip;
         SensorType sensor;
 
+        double imu_acc_x_offset;
+        double imu_acc_y_offset;
+        double imu_acc_z_offset;
         double imu_acc_x_limit;
         double imu_acc_y_limit;
         double imu_acc_z_limit;
