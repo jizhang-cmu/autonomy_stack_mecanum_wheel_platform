@@ -1,8 +1,4 @@
-<p align="center">
-  <img src="dimos_terminal.png" alt="Dimensional" width="90%"/><br>
-</p>
-
-# Dimensional Ground Autonomy Stack
+# Vector Robotics Ground Autonomy Stack
 
 This repository provides a **generalizable autonomy stack for ground robots**. The stack is designed to be **embodiment-agnostic** (wheeled, legged, etc.) by selecting a robot configuration via `ROBOT_CONFIG_PATH`.
 
