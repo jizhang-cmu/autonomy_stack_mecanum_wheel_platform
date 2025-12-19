@@ -40,6 +40,79 @@ sudo apt install -y \
   git
 ```
 
+#### Additional native dependencies (MID360 + SLAM builds)
+
+If you are building the MID360 driver and SLAM from source (real robot setup), install the additional C++ toolchain + math/logging deps:
+
+```bash
+sudo apt update
+sudo apt install -y \
+  cmake \
+  libgoogle-glog-dev \
+  libgflags-dev \
+  libatlas-base-dev \
+  libeigen3-dev \
+  libsuitesparse-dev
+```
+
+#### Build Livox-SDK2 (required for `livox_ros_driver2`)
+
+Livox-SDK2 is vendored under this repo at `src/utilities/livox_ros_driver2/Livox-SDK2`:
+
+```bash
+cd src/utilities/livox_ros_driver2/Livox-SDK2
+mkdir -p build && cd build
+cmake ..
+make -j"$(nproc)"
+sudo make install
+```
+
+Then build the ROS 2 driver package:
+
+```bash
+cd ~/autonomy_stack_mecanum_wheel_platform
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release --packages-select livox_ros_driver2
+```
+
+#### Build SLAM dependencies (Sophus / Ceres / GTSAM)
+
+These dependencies are vendored under `src/slam/dependency/`. If you don’t already have them installed system-wide, you can install them from source:
+
+```bash
+# Sophus
+cd src/slam/dependency/Sophus
+mkdir -p build && cd build
+cmake .. -DBUILD_TESTS=OFF
+make -j"$(nproc)"
+sudo make install
+```
+
+```bash
+# Ceres Solver
+cd src/slam/dependency/ceres-solver
+mkdir -p build && cd build
+cmake ..
+make -j"$(nproc)"
+sudo make install
+```
+
+```bash
+# GTSAM
+cd src/slam/dependency/gtsam
+mkdir -p build && cd build
+cmake .. -DGTSAM_USE_SYSTEM_EIGEN=ON -DGTSAM_BUILD_WITH_MARCH_NATIVE=OFF
+make -j"$(nproc)"
+sudo make install
+sudo /sbin/ldconfig
+```
+
+Then build the SLAM packages:
+
+```bash
+cd ~/autonomy_stack_mecanum_wheel_platform
+colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release --packages-select arise_slam_mid360 arise_slam_mid360_msgs
+```
+
 ### 2) Build
 
 From the repository root:
