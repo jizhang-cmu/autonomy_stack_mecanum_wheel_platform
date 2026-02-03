@@ -188,7 +188,7 @@ The stack supports Unity-based simulation environments. Download a Unity environ
 
 `src/base_autonomy/vehicle_simulator/mesh/unity/`
 
-Unity model download: `https://drive.google.com/drive/folders/1G1JYkccvoSlxyySuTlPfvmrWoJUO8oSs?usp=sharing`
+Unity model download: [drive](https://drive.google.com/drive/folders/1G1JYkccvoSlxyySuTlPfvmrWoJUO8oSs?usp=sharing)
 
 #### Base autonomy (simulation)
 
