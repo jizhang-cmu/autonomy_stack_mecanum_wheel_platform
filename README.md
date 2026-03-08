@@ -142,7 +142,7 @@ Please install dependencies with the command lines below before proceeding to th
 
 ```
 sudo apt update
-sudo apt install ros-lyrical-desktop-full ros-lyrical-pcl-ros libpcl-dev git cmake libgoogle-glog-dev libgflags-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev
+sudo apt install ros-lyrical-desktop-full ros-lyrical-pcl-ros libpcl-dev git cmake libgoogle-glog-dev libgflags-dev libopenblas-dev libeigen3-dev libsuitesparse-dev
 ```
 
 #### 2) Mid-360 Lidar
