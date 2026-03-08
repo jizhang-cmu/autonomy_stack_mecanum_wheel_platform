@@ -26,9 +26,6 @@
 using namespace std;
 using namespace gtsam;
 
-// In Wrappers we have no access to this so have a default ready
-static std::mt19937_64 kRandomNumberGenerator(42);
-
 namespace gtsam {
 
   // Instantiate base class
@@ -74,15 +71,6 @@ namespace gtsam {
       result.insert(sampled);
     }
     return result;
-  }
-
-  /* ************************************************************************ */
-  VectorValues GaussianBayesNet::sample() const {
-    return sample(&kRandomNumberGenerator);
-  }
-
-  VectorValues GaussianBayesNet::sample(const VectorValues& given) const {
-    return sample(given, &kRandomNumberGenerator);
   }
 
   /* ************************************************************************ */
@@ -240,6 +228,27 @@ namespace gtsam {
       logDet += cg->logDeterminant();
     }
     return logDet;
+  }
+
+  /* ************************************************************************* */
+  double GaussianBayesNet::negLogConstant() const {
+    /*
+    normalization constant = 1.0 / sqrt((2*pi)^n*det(Sigma))
+    negLogConstant = -log(normalizationConstant)
+      = 0.5 * n*log(2*pi) + 0.5 * log(det(Sigma))
+
+    log(det(Sigma)) = -2.0 * logDeterminant()
+    thus, negLogConstant = 0.5*n*log(2*pi) - logDeterminant()
+
+    BayesNet negLogConstant = sum(0.5*n_i*log(2*pi) - logDeterminant_i())
+    = sum(0.5*n_i*log(2*pi)) + sum(logDeterminant_i())
+    = sum(0.5*n_i*log(2*pi)) + bn->logDeterminant()
+    */
+    double negLogNormConst = 0.0;
+    for (const sharedConditional& cg : *this) {
+      negLogNormConst += cg->negLogConstant();
+    }
+    return negLogNormConst;
   }
 
   /* ************************************************************************* */

@@ -14,8 +14,8 @@
 #include <gtsam/nonlinear/NonlinearFactorGraph.h>
 #include <gtsam/nonlinear/expressionTesting.h>
 #include <gtsam/nonlinear/factorTesting.h>
-#include <gtsam/slam/EssentialMatrixFactor.h>
 #include <gtsam/sfm/SfmData.h>
+#include <gtsam/slam/EssentialMatrixFactor.h>
 #include <gtsam/slam/dataset.h>
 
 using namespace std::placeholders;
@@ -101,7 +101,8 @@ TEST(EssentialMatrixFactor, ExpressionFactor) {
   Key key(1);
   for (size_t i = 0; i < 5; i++) {
     std::function<double(const EssentialMatrix &, OptionalJacobian<1, 5>)> f =
-        std::bind(&EssentialMatrix::error, std::placeholders::_1, vA(i), vB(i), std::placeholders::_2);
+        std::bind(&EssentialMatrix::error, std::placeholders::_1, vA(i), vB(i),
+                  std::placeholders::_2);
     Expression<EssentialMatrix> E_(key);  // leaf expression
     Expression<double> expr(f, E_);       // unary expression
 
@@ -116,8 +117,8 @@ TEST(EssentialMatrixFactor, ExpressionFactor) {
     // Check evaluation
     Vector expected(1);
     expected << 0;
-    vector<Matrix> Hactual(1);
-    Vector actual = factor.unwhitenedError(values, Hactual);
+    vector<Matrix> actualH(1);
+    Vector actual = factor.unwhitenedError(values, actualH);
     EXPECT(assert_equal(expected, actual, 1e-7));
   }
 }
@@ -127,10 +128,11 @@ TEST(EssentialMatrixFactor, ExpressionFactorRotationOnly) {
   Key key(1);
   for (size_t i = 0; i < 5; i++) {
     std::function<double(const EssentialMatrix &, OptionalJacobian<1, 5>)> f =
-        std::bind(&EssentialMatrix::error, std::placeholders::_1, vA(i), vB(i), std::placeholders::_2);
+        std::bind(&EssentialMatrix::error, std::placeholders::_1, vA(i), vB(i),
+                  std::placeholders::_2);
     std::function<EssentialMatrix(const Rot3 &, const Unit3 &,
-                                    OptionalJacobian<5, 3>,
-                                    OptionalJacobian<5, 2>)>
+                                  OptionalJacobian<5, 3>,
+                                  OptionalJacobian<5, 2>)>
         g;
     Expression<Rot3> R_(key);
     Expression<Unit3> d_(trueDirection);
@@ -149,8 +151,8 @@ TEST(EssentialMatrixFactor, ExpressionFactorRotationOnly) {
     // Check evaluation
     Vector expected(1);
     expected << 0;
-    vector<Matrix> Hactual(1);
-    Vector actual = factor.unwhitenedError(values, Hactual);
+    vector<Matrix> actualH(1);
+    Vector actual = factor.unwhitenedError(values, actualH);
     EXPECT(assert_equal(expected, actual, 1e-7));
   }
 }
@@ -211,9 +213,9 @@ TEST(EssentialMatrixFactor2, factor) {
     const Point2 pi = PinholeBase::Project(P2);
     Point2 expected(pi - pB(i));
 
-    Matrix Hactual1, Hactual2;
+    Matrix actualH1, actualH2;
     double d(baseline / P1.z());
-    Vector actual = factor.evaluateError(trueE, d, Hactual1, Hactual2);
+    Vector actual = factor.evaluateError(trueE, d, actualH1, actualH2);
     EXPECT(assert_equal(expected, actual, 1e-7));
 
     Values val;
@@ -276,9 +278,9 @@ TEST(EssentialMatrixFactor3, factor) {
     const Point2 pi = camera2.project(P1);
     Point2 expected(pi - pB(i));
 
-    Matrix Hactual1, Hactual2;
+    Matrix actualH1, actualH2;
     double d(baseline / P1.z());
-    Vector actual = factor.evaluateError(bodyE, d, Hactual1, Hactual2);
+    Vector actual = factor.evaluateError(bodyE, d, actualH1, actualH2);
     EXPECT(assert_equal(expected, actual, 1e-7));
 
     Values val;
@@ -529,6 +531,48 @@ TEST(EssentialMatrixFactor4, minimizationWithStrongCal3BundlerPrior) {
         1e-6);
 }
 
+//*************************************************************************
+TEST(EssentialMatrixFactor5, factor) {
+  Key keyE(1), keyKa(2), keyKb(3);
+  for (size_t i = 0; i < 5; i++) {
+    EssentialMatrixFactor5<Cal3_S2> factor(keyE, keyKa, keyKb, pA(i), pB(i),
+                                           model1);
+
+    // Check evaluation
+    Vector1 expected;
+    expected << 0;
+    Vector actual = factor.evaluateError(trueE, trueK, trueK);
+    EXPECT(assert_equal(expected, actual, 1e-7));
+
+    Values truth;
+    truth.insert(keyE, trueE);
+    truth.insert(keyKa, trueK);
+    truth.insert(keyKb, trueK);
+    EXPECT_CORRECT_FACTOR_JACOBIANS(factor, truth, 1e-6, 1e-7);
+  }
+}
+
+//*************************************************************************
+// Test that if we use the same keys for Ka and Kb the sum of the two K
+// Jacobians equals that of the single K Jacobian for EssentialMatrix4
+TEST(EssentialMatrixFactor5, SameKeys) {
+  Key keyE(1), keyK(2);
+  for (size_t i = 0; i < 5; i++) {
+    EssentialMatrixFactor4<Cal3_S2> factor4(keyE, keyK, pA(i), pB(i), model1);
+    EssentialMatrixFactor5<Cal3_S2> factor5(keyE, keyK, keyK, pA(i), pB(i),
+                                            model1);
+
+    Values truth;
+    truth.insert(keyE, trueE);
+    truth.insert(keyK, trueK);
+
+    // Check Jacobians
+    Matrix H0, H1, H2;
+    factor4.evaluateError(trueE, trueK, nullptr, &H0);
+    factor5.evaluateError(trueE, trueK, trueK, nullptr, &H1, &H2);
+    EXPECT(assert_equal(H0, H1 + H2, 1e-9));
+  }
+}
 }  // namespace example1
 
 //*************************************************************************

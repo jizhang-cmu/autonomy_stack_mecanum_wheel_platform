@@ -39,7 +39,7 @@ using namespace gtsam;
 using namespace std;
 
 // In Wrappers we have no access to this so have a default ready.
-static std::mt19937 kRandomNumberGenerator(42);
+static std::mt19937 kPRNG(42);
 
 // Some relative translations may be zero. We treat nodes that have a zero
 // relativeTranslation as a single node.
@@ -101,9 +101,17 @@ NonlinearFactorGraph TranslationRecovery::buildGraph(
   NonlinearFactorGraph graph;
 
   // Add translation factors for input translation directions.
+  uint64_t i = 0;
   for (auto edge : relativeTranslations) {
-    graph.emplace_shared<TranslationFactor>(edge.key1(), edge.key2(),
-                                            edge.measured(), edge.noiseModel());
+    if (use_bilinear_translation_factor_) {
+      graph.emplace_shared<BilinearAngleTranslationFactor>(
+          edge.key1(), edge.key2(), Symbol('S', i), edge.measured(),
+          edge.noiseModel());
+    } else {
+      graph.emplace_shared<TranslationFactor>(
+          edge.key1(), edge.key2(), edge.measured(), edge.noiseModel());
+    }
+    i++;
   }
   return graph;
 }
@@ -163,6 +171,12 @@ Values TranslationRecovery::initializeRandomly(
     insert(edge.key1());
     insert(edge.key2());
   }
+
+  if (use_bilinear_translation_factor_) {
+    for (uint64_t i = 0; i < relativeTranslations.size(); i++) {
+      initial.insert<Vector1>(Symbol('S', i), Vector1(1.0));
+    }
+  }
   return initial;
 }
 
@@ -171,7 +185,7 @@ Values TranslationRecovery::initializeRandomly(
     const std::vector<BinaryMeasurement<Point3>> &betweenTranslations,
     const Values &initialValues) const {
   return initializeRandomly(relativeTranslations, betweenTranslations,
-                            &kRandomNumberGenerator, initialValues);
+                            &kPRNG, initialValues);
 }
 
 Values TranslationRecovery::run(

@@ -10,25 +10,25 @@ Click [here for the product page](https://www.tarerobotics.com) and the [online 
 
 ### Base Autonomy
 
-The system is integrated with [Unity](https://unity.com) environment models for simulation. The repository has been tested in Ubuntu 24.04 with [ROS2 Jazzy](https://docs.ros.org/en/jazzy/Installation.html). After installing ROS2 Jazzy, add 'source /opt/ros/jazzy/setup.bash' to the '~/.bashrc' file and `source ~/.bashrc` in the terminal to engage the installation.
+The system is integrated with [Unity](https://unity.com) environment models for simulation. The repository has been tested in Ubuntu 26.04 with [ROS2 Lyrical](https://docs.ros.org/en/lyrical/Installation.html). After installing ROS2 Lyrical, add 'source /opt/ros/lyrical/setup.bash' to the '~/.bashrc' file and `source ~/.bashrc` in the terminal to engage the installation.
 ```
-echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+echo "source /opt/ros/lyrical/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 ```
 Install dependencies with the command lines below.
 ```
 sudo apt update
-sudo apt install ros-jazzy-desktop-full ros-jazzy-pcl-ros libpcl-dev git
+sudo apt install ros-lyrical-desktop-full ros-lyrical-pcl-ros libpcl-dev git
 ```
 Clone the open-source repository.
 ```
 git clone https://github.com/jizhang-cmu/autonomy_stack_mecanum_wheel_platform.git
 
 ```
-In a terminal, go to the folder, checkout the 'jazzy' branch, and compile. Note that this skips the SLAM module and Mid-360 lidar driver. The two packages are not needed for simulation.
+In a terminal, go to the folder, checkout the 'lyrical' branch, and compile. Note that this skips the SLAM module and Mid-360 lidar driver. The two packages are not needed for simulation.
 ```
 cd autonomy_stack_mecanum_wheel_platform
-git checkout jazzy
+git checkout lyrical
 colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release --packages-skip arise_slam_mid360 arise_slam_mid360_msgs livox_ros_driver2
 ```
 Download a [Unity environment model for the Mecanum wheel platform](https://drive.google.com/drive/folders/1GNz386h6wiiFuQQdaY2_HbNRyd7nKA1N?usp=sharing) and unzip the files to the 'src/base_autonomy/vehicle_simulator/mesh/unity' folder. The environment model files should look like below. For computers without a powerful GPU, please try the 'without_360_camera' version for a higher rendering rate.
@@ -127,10 +127,10 @@ The vehicle is compatible with two types of wheels with Mecanum wheels as the de
 
 ### System Setup
 
-On the processing computer, install [Ubuntu 24.04](https://releases.ubuntu.com/noble), connect the computer to Internet, and install [ROS2 Jazzy](https://docs.ros.org/en/jazzy/Installation.html). After installation of ROS2 Jazzy, add 'source /opt/ros/jazzy/setup.bash' to the '~/.bashrc' file and `source ~/.bashrc` in the terminal to engage the installation, or use the command lines below. Add user to the dialout group by `sudo adduser 'username' dialout`. Then, reboot the computer. Optionally, configure BIOS and set the computer to automatically boot when power is supplied
+On the processing computer, install [Ubuntu 26.04](https://releases.ubuntu.com/resolute), connect the computer to Internet, and install [ROS2 Lyrical](https://docs.ros.org/en/lyrical/Installation.html). After installation of ROS2 Lyrical, add 'source /opt/ros/lyrical/setup.bash' to the '~/.bashrc' file and `source ~/.bashrc` in the terminal to engage the installation, or use the command lines below. Add user to the dialout group by `sudo adduser 'username' dialout`. Then, reboot the computer. Optionally, configure BIOS and set the computer to automatically boot when power is supplied
 
 ```
-echo "source /opt/ros/jazzy/setup.bash" >> ~/.bashrc
+echo "source /opt/ros/lyrical/setup.bash" >> ~/.bashrc
 source ~/.bashrc
 sudo adduser 'username' dialout
 sudo reboot now
@@ -142,17 +142,17 @@ Please install dependencies with the command lines below before proceeding to th
 
 ```
 sudo apt update
-sudo apt install ros-jazzy-desktop-full ros-jazzy-pcl-ros libpcl-dev git cmake libgoogle-glog-dev libgflags-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev
+sudo apt install ros-lyrical-desktop-full ros-lyrical-pcl-ros libpcl-dev git cmake libgoogle-glog-dev libgflags-dev libatlas-base-dev libeigen3-dev libsuitesparse-dev
 ```
 
 #### 2) Mid-360 Lidar
 
-First, clone the open-source repository and checkout the 'jazzy' branch.
+First, clone the open-source repository and checkout the 'lyrical' branch.
 
 ```
 git clone https://github.com/jizhang-cmu/autonomy_stack_mecanum_wheel_platform.git
 cd autonomy_stack_mecanum_wheel_platform
-git checkout jazzy
+git checkout lyrical
 ```
 
 Next, install ‘Livox-SDK2’. In a terminal, go to the 'src/utilities/livox_ros_driver2/Livox-SDK2' folder in the repository and use the command lines below. More information about [‘Livox-SDK2’ can be found here](https://github.com/Livox-SDK/Livox-SDK2).
@@ -308,7 +308,7 @@ ros2 bag play 'bagfolder_path/bagfile_name.mcap (or bagfile_name.db3)'
 
 ### Installing Add-on Computer
 
-Multiple options are available for advanced AI support. Users can mount an Jetson AGX Orin computer or a gaming laptop in the reserved spaces. For either option, use the 19v or 110v/220v output to power on the computer. The add-on computer should have Ubuntu 24.04 and [ROS2 Jazzy](https://docs.ros.org/en/jazzy/Installation.html) installed. Connect the add-on computer to the NUC i7 computer via an ethernet cable (optionally with USB-Ethernet adapters on one or both sides). We recommend using manual IP and setting the subnet address to 10.1.1.x (e.g. NUC i7 computer at 10.1.1.100 and add-on computer at 10.1.1.101). With the vehicle system running on the NUC i7 computer, users should be able to list all the topics on the add-on computer using `ros2 topic list`. If also connecting the add-on computer to the internet, configure it to 'Use this connection only for resources on its network' for the Ethernet connection to the NUC i7 computer.
+Multiple options are available for advanced AI support. Users can mount an Jetson AGX Orin computer or a gaming laptop in the reserved spaces. For either option, use the 19v or 110v/220v output to power on the computer. The add-on computer should have Ubuntu 26.04 and [ROS2 Lyrical](https://docs.ros.org/en/lyrical/Installation.html) installed. Connect the add-on computer to the NUC i7 computer via an ethernet cable (optionally with USB-Ethernet adapters on one or both sides). We recommend using manual IP and setting the subnet address to 10.1.1.x (e.g. NUC i7 computer at 10.1.1.100 and add-on computer at 10.1.1.101). With the vehicle system running on the NUC i7 computer, users should be able to list all the topics on the add-on computer using `ros2 topic list`. If also connecting the add-on computer to the internet, configure it to 'Use this connection only for resources on its network' for the Ethernet connection to the NUC i7 computer.
 
 To synchronize the system time between the NUC i7 computer and the add-on computer, install chrony.
 ```
@@ -326,7 +326,7 @@ chronyc sources
 
 ### Transmitting Data over WiFi
 
-Another option is wirelessly transmitting data to a base station computer installed with Ubuntu 24.04 and [ROS2 Jazzy](https://docs.ros.org/en/jazzy/Installation.html), allowing users to run AI models on the base station computer with powerful GPUs. The setup involves a high-speed WiFi router. The model tested is an [ASUS RT-AX55 WiFi router](https://www.amazon.com/ASUS-AX1800-WiFi-Router-RT-AX55/dp/B08J6CFM39). Configure the router and set up the subnet. We recommend using automatic IP and setting the subnet address to 10.1.1.x (please avoid the 192.168.1.x subnet as being used by the Mid-360 lidar, and do not connect the router to the internet). Connect the base station computer to the router with an Ethernet cable and the onboard NUC i7 computer to the router over WiFi, both using 'Automatic (DHCP)'. Make sure both computers are on the same subnet and can ping each other. On the NUC i7 computer computer, use the command lines below to increase the message buffer size. Then, you can use `sysctl net.core.rmem_max` and `sysctl net.core.wmem_max` to check the buffer size.
+Another option is wirelessly transmitting data to a base station computer installed with Ubuntu 26.04 and [ROS2 Lyrical](https://docs.ros.org/en/lyrical/Installation.html), allowing users to run AI models on the base station computer with powerful GPUs. The setup involves a high-speed WiFi router. The model tested is an [ASUS RT-AX55 WiFi router](https://www.amazon.com/ASUS-AX1800-WiFi-Router-RT-AX55/dp/B08J6CFM39). Configure the router and set up the subnet. We recommend using automatic IP and setting the subnet address to 10.1.1.x (please avoid the 192.168.1.x subnet as being used by the Mid-360 lidar, and do not connect the router to the internet). Connect the base station computer to the router with an Ethernet cable and the onboard NUC i7 computer to the router over WiFi, both using 'Automatic (DHCP)'. Make sure both computers are on the same subnet and can ping each other. On the NUC i7 computer computer, use the command lines below to increase the message buffer size. Then, you can use `sysctl net.core.rmem_max` and `sysctl net.core.wmem_max` to check the buffer size.
 ```
 sudo sysctl -w net.core.rmem_max=67108864 net.core.rmem_default=67108864
 sudo sysctl -w net.core.wmem_max=67108864 net.core.wmem_default=67108864
@@ -349,7 +349,7 @@ Users can set up AI models on the base station computer to process the transmitt
 
 ## Notes
 
-- In ROS2 Jazzy, RVIZ is known to have issues with wayland. Use `echo $XDG_SESSION_TYPE` to check if wayland is being used. If yes, install X11 using `sudo apt-get install xorg openbox`. Then, in the '/etc/gdm3/custom.conf' file, uncomment 'WaylandEnable=false' and reboot.
+- In ROS2 Lyrical, RVIZ is known to have issues with wayland. Use `echo $XDG_SESSION_TYPE` to check if wayland is being used. If yes, install X11 using `sudo apt-get install xorg openbox`. Then, in the '/etc/gdm3/custom.conf' file, uncomment 'WaylandEnable=false' and reboot.
 
 - In simulation, the bridge between Unity and the system is not completely stable. At the system launch, if you see an error regarding 'ros_tcp_endpoint', simply try for a second time.
 

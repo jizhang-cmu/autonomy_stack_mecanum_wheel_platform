@@ -29,7 +29,7 @@
 #include <gtsam/base/GenericValue.h>
 #include <gtsam/base/VectorSpace.h>
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/serialization/unique_ptr.hpp>
 #endif
 
@@ -189,7 +189,7 @@ namespace gtsam {
       const_iterator_type it_;
       deref_iterator(const_iterator_type it) : it_(it) {}
       ConstKeyValuePair operator*() const { return {it_->first, *(it_->second)}; }
-      std::unique_ptr<ConstKeyValuePair> operator->() {
+      std::unique_ptr<ConstKeyValuePair> operator->() const {
         return std::make_unique<ConstKeyValuePair>(it_->first, *(it_->second));
       }
       bool operator==(const deref_iterator& other) const {
@@ -393,7 +393,7 @@ namespace gtsam {
       return filter(key_value.key) && (dynamic_cast<const GenericValue<ValueType>*>(&key_value.value));
     }
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
     /** Serialization function */
     friend class boost::serialization::access;
     template<class ARCHIVE>

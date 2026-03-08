@@ -84,6 +84,9 @@ class GTSAM_EXPORT HybridBayesTree : public BayesTree<HybridBayesTreeClique> {
    */
   GaussianBayesTree choose(const DiscreteValues& assignment) const;
 
+  /** Error for all conditionals. */
+  double error(const HybridValues& values) const;
+
   /**
    * @brief Optimize the hybrid Bayes tree by computing the MPE for the current
    * set of discrete variables and using it to compute the best continuous
@@ -96,11 +99,19 @@ class GTSAM_EXPORT HybridBayesTree : public BayesTree<HybridBayesTreeClique> {
   /**
    * @brief Recursively optimize the BayesTree to produce a vector solution.
    *
-   * @param assignment The discrete values assignment to select the Gaussian
-   * mixtures.
+   * @param assignment The discrete values assignment to select
+   * the hybrid conditional.
    * @return VectorValues
    */
   VectorValues optimize(const DiscreteValues& assignment) const;
+
+  /**
+   * @brief Compute the Most Probable Explanation (MPE)
+   * of the discrete variables.
+   *
+   * @return DiscreteValues
+   */
+  DiscreteValues mpe() const;
 
   /**
    * @brief Prune the underlying Bayes tree.
@@ -112,7 +123,11 @@ class GTSAM_EXPORT HybridBayesTree : public BayesTree<HybridBayesTreeClique> {
   /// @}
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+  /// Helper method to compute the max product assignment
+  /// given a DiscreteFactorGraph
+  DiscreteValues discreteMaxProduct(const DiscreteFactorGraph& dfg) const;
+
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template <class ARCHIVE>
@@ -167,7 +182,7 @@ class BayesTreeOrphanWrapper<HybridBayesTreeClique> : public HybridConditional {
   void print(
       const std::string& s = "",
       const KeyFormatter& formatter = DefaultKeyFormatter) const override {
-    clique->print(s + "stored clique", formatter);
+    clique->print(s + " stored clique ", formatter);
   }
 };
 

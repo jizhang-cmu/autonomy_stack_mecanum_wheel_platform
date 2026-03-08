@@ -19,6 +19,10 @@ template <typename derived>
 struct empty {
     static const derived &get_one() { return instance_; }
     static derived instance_;
+
+private:
+    empty() = default;
+    friend derived;
 };
 
 struct lacking_copy_ctor : public empty<lacking_copy_ctor> {
@@ -157,6 +161,13 @@ public:
 PYBIND11_NAMESPACE_END(detail)
 PYBIND11_NAMESPACE_END(pybind11)
 
+namespace {
+
+py::object CastUnusualOpRefConstRef(const UnusualOpRef &cref) { return py::cast(cref); }
+py::object CastUnusualOpRefMovable(UnusualOpRef &&mvbl) { return py::cast(std::move(mvbl)); }
+
+} // namespace
+
 TEST_SUBMODULE(copy_move_policies, m) {
     // test_lacking_copy_ctor
     py::class_<lacking_copy_ctor>(m, "lacking_copy_ctor")
@@ -182,11 +193,9 @@ TEST_SUBMODULE(copy_move_policies, m) {
 
     // test_move_and_copy_loads
     m.def("move_only", [](MoveOnlyInt m) { return m.value; });
-    // Changing this breaks the existing test: needs careful review.
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    // NOLINTNEXTLINE(performance-unnecessary-value-param): we want to test copying
     m.def("move_or_copy", [](MoveOrCopyInt m) { return m.value; });
-    // Changing this breaks the existing test: needs careful review.
-    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    // NOLINTNEXTLINE(performance-unnecessary-value-param): we want to test copying
     m.def("copy_only", [](CopyOnlyInt m) { return m.value; });
     m.def("move_pair",
           [](std::pair<MoveOnlyInt, MoveOrCopyInt> p) { return p.first.value + p.second.value; });
@@ -289,11 +298,15 @@ TEST_SUBMODULE(copy_move_policies, m) {
         "get_moveissue1",
         [](int i) { return std::unique_ptr<MoveIssue1>(new MoveIssue1(i)); },
         py::return_value_policy::move);
-    m.def(
-        "get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
+    m.def("get_moveissue2", [](int i) { return MoveIssue2(i); }, py::return_value_policy::move);
 
     // Make sure that cast from pytype rvalue to other pytype works
     m.def("get_pytype_rvalue_castissue", [](double i) { return py::float_(i).cast<py::int_>(); });
+
+    py::class_<UnusualOpRef>(m, "UnusualOpRef");
+    m.def("CallCastUnusualOpRefConstRef",
+          []() { return CastUnusualOpRefConstRef(UnusualOpRef()); });
+    m.def("CallCastUnusualOpRefMovable", []() { return CastUnusualOpRefMovable(UnusualOpRef()); });
 }
 
 /*

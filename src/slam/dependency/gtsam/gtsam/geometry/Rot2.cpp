@@ -82,6 +82,21 @@ Vector1 Rot2::Logmap(const Rot2& r, OptionalJacobian<1, 1> H) {
   return v;
 }
 /* ************************************************************************* */
+Matrix2 Rot2::Hat(const Vector1& xi) {
+  Matrix2 X;
+  X << 0., -xi.x(),
+    xi.x(), 0.;
+  return X;
+}
+
+/* ************************************************************************* */
+Vector1 Rot2::Vee(const Matrix2& X) {
+  TangentVector v;
+  v << X(1, 0);
+  return v;
+}
+
+/* ************************************************************************* */
 Matrix2 Rot2::matrix() const {
   Matrix2 rvalue_;
   rvalue_ <<  c_, -s_, s_, c_;
@@ -142,6 +157,15 @@ Rot2 Rot2::ClosestTo(const Matrix2& M) {
   return Rot2::fromCosSin(c, s);
 }
 
+//******************************************************************************
+Vector4 Rot2::vec(OptionalJacobian<4, 1> H) const {
+  const Matrix2 R = matrix();
+  if (H) {
+    H->block<2, 1>(0, 0) = R.col(1);
+    H->block<2, 1>(2, 0) = -R.col(0);
+  }
+  return Eigen::Map<const Vector4>(R.data());
+}
 /* ************************************************************************* */
 
 } // gtsam

@@ -30,7 +30,7 @@
 #include <gtsam/slam/dataset.h>
 #include <gtsam_unstable/dllexport.h>
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/serialization/optional.hpp>
 #endif
 
@@ -504,7 +504,7 @@ public:
 
 private:
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /// Serialization function
   friend class boost::serialization::access;
   template<class ARCHIVE>

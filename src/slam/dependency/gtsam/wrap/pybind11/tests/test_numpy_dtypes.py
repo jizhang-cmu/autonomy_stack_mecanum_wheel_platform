@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 import pytest
@@ -76,9 +78,7 @@ def partial_nested_fmt():
     partial_size = partial_ld_off + ld.itemsize
     partial_end_padding = partial_size % np.dtype("uint64").alignment
     partial_nested_size = partial_nested_off * 2 + partial_size + partial_end_padding
-    return "{{'names':['a'],'formats':[{}],'offsets':[{}],'itemsize':{}}}".format(
-        partial_dtype_fmt(), partial_nested_off, partial_nested_size
-    )
+    return f"{{'names':['a'],'formats':[{partial_dtype_fmt()}],'offsets':[{partial_nested_off}],'itemsize':{partial_nested_size}}}"
 
 
 def assert_equal(actual, expected_data, expected_dtype):
@@ -172,13 +172,37 @@ def test_dtype(simple_dtype):
         np.zeros(1, m.trailing_padding_dtype())
     )
 
-    expected_chars = "bhilqBHILQefdgFDG?MmO"
-    assert m.test_dtype_kind() == list("iiiiiuuuuuffffcccbMmO")
+    expected_chars = list("bhilqBHILQefdgFDG?MmO")
+    # Note that int_ and uint size and mapping is NumPy version dependent:
+    expected_chars += [np.dtype(_).char for _ in ("int_", "uint", "intp", "uintp")]
+    assert m.test_dtype_kind() == list("iiiiiuuuuuffffcccbMmOiuiu")
     assert m.test_dtype_char_() == list(expected_chars)
     assert m.test_dtype_num() == [np.dtype(ch).num for ch in expected_chars]
     assert m.test_dtype_byteorder() == [np.dtype(ch).byteorder for ch in expected_chars]
     assert m.test_dtype_alignment() == [np.dtype(ch).alignment for ch in expected_chars]
-    assert m.test_dtype_flags() == [chr(np.dtype(ch).flags) for ch in expected_chars]
+    assert m.test_dtype_flags() == [np.dtype(ch).flags for ch in expected_chars]
+
+    for a, b in m.test_dtype_num_of():
+        assert a == b
+
+    for a, b in m.test_dtype_normalized_num():
+        assert a == b
+
+    arr = np.array([4, 84, 21, 36])
+    # Note: "ulong" does not work in NumPy 1.x, so we use "L"
+    assert (m.test_dtype_switch(arr.astype("byte")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("ubyte")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("short")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("ushort")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("intc")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("uintc")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("long")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("L")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("longlong")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("ulonglong")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("single")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("double")) == arr + 1).all()
+    assert (m.test_dtype_switch(arr.astype("longdouble")) == arr + 1).all()
 
 
 def test_recarray(simple_dtype, packed_dtype):
@@ -343,7 +367,7 @@ def test_complex_array():
 def test_signature(doc):
     assert (
         doc(m.create_rec_nested)
-        == "create_rec_nested(arg0: int) -> numpy.ndarray[NestedStruct]"
+        == "create_rec_nested(arg0: typing.SupportsInt) -> numpy.typing.NDArray[NestedStruct]"
     )
 
 

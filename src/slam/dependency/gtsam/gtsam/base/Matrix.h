@@ -53,7 +53,7 @@ using Matrix7##N = Eigen::Matrix<double, 7, N>;  \
 using Matrix8##N = Eigen::Matrix<double, 8, N>;  \
 using Matrix9##N = Eigen::Matrix<double, 9, N>;  \
 static const Eigen::MatrixBase<Matrix##N>::IdentityReturnType I_##N##x##N = Matrix##N::Identity(); \
-static const Eigen::MatrixBase<Matrix##N>::ConstantReturnType Z_##N##x##N = Matrix##N::Zero();
+static const Eigen::MatrixBase<Matrix##N>::ConstantReturnType Z_##N##x##N = Matrix##N::Constant(0.0);
 
 GTSAM_MAKE_MATRIX_DEFS(1)
 GTSAM_MAKE_MATRIX_DEFS(2)
@@ -131,12 +131,6 @@ GTSAM_EXPORT bool linear_independent(const Matrix& A, const Matrix& B, double to
  * check whether the rows of two matrices are linear dependent
  */
 GTSAM_EXPORT bool linear_dependent(const Matrix& A, const Matrix& B, double tol = 1e-9);
-
-/**
- * overload ^ for trans(A)*v
- * We transpose the vectors for speed.
- */
-GTSAM_EXPORT Vector operator^(const Matrix& A, const Vector & v);
 
 /** products using old-style format to improve compatibility */
 template<class MATRIX>
@@ -220,19 +214,6 @@ const typename MATRIX::ConstColXpr column(const MATRIX& A, size_t j) {
 template<class MATRIX>
 const typename MATRIX::ConstRowXpr row(const MATRIX& A, size_t j) {
   return A.row(j);
-}
-
-/**
- * Zeros all of the elements below the diagonal of a matrix, in place
- * @param A is a matrix, to be modified in place
- * @param cols is the number of columns to zero, use zero for all columns
- */
-template<class MATRIX>
-void zeroBelowDiagonal(MATRIX& A, size_t cols=0) {
-  const size_t m = A.rows(), n = A.cols();
-  const size_t k = (cols) ? std::min(cols, std::min(m,n)) : std::min(m,n);
-  for (size_t j=0; j<k; ++j)
-    A.col(j).segment(j+1, m-(j+1)).setZero();
 }
 
 /**
@@ -479,7 +460,7 @@ struct MultiplyWithInverse {
  */
 template <typename T, int N>
 struct MultiplyWithInverseFunction {
-  enum { M = traits<T>::dimension };
+  inline constexpr static auto M = traits<T>::dimension;
   typedef Eigen::Matrix<double, N, 1> VectorN;
   typedef Eigen::Matrix<double, N, N> MatrixN;
 

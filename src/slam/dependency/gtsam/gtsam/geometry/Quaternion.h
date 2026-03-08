@@ -45,9 +45,7 @@ struct traits<QUATERNION_TYPE> {
   /// @}
   /// @name Basic manifold traits
   /// @{
-  enum {
-    dimension = 3
-  };
+  inline constexpr static auto dimension = 3;
   typedef OptionalJacobian<3, 3> ChartJacobian;
   typedef Eigen::Matrix<_Scalar, 3, 1, _Options, 3, 1> TangentVector;
 
@@ -138,6 +136,24 @@ struct traits<QUATERNION_TYPE> {
 
     if(H) *H = SO3::LogmapDerivative(omega.template cast<double>());
     return omega;
+  }
+
+  static Matrix3 AdjointMap(const Q &g) {
+    return g.toRotationMatrix();
+  }
+
+  using LieAlgebra = Matrix3;
+
+  static Matrix3 Hat(const Vector3& v) {
+    return SO3::Hat(v);
+  }
+  
+  static Vector3 Vee(const Matrix3& X) {
+    return SO3::Vee(X);
+  }
+
+  static Vector9 Vec(const Q& q, OptionalJacobian<9, 3> H = {}) {
+    return SO3(q.toRotationMatrix()).SO3::vec(H);
   }
 
   /// @}

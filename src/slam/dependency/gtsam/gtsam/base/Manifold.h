@@ -24,6 +24,8 @@
 #include <gtsam/base/OptionalJacobian.h>
 #include <gtsam/base/concepts.h>
 
+#include <type_traits>
+
 namespace gtsam {
 
 /// tag to assert a type is a manifold
@@ -55,33 +57,29 @@ namespace internal {
 template<class Class>
 struct HasManifoldPrereqs {
 
-  enum { dim = Class::dimension };
+  inline constexpr static auto dim = Class::dimension;
 
   Class p, q;
   Eigen::Matrix<double, dim, 1> v;
   OptionalJacobian<dim, dim> Hp, Hq, Hv;
 
-  BOOST_CONCEPT_USAGE(HasManifoldPrereqs) {
+  GTSAM_CONCEPT_USAGE(HasManifoldPrereqs) {
     v = p.localCoordinates(q);
     q = p.retract(v);
   }
 };
 
-/// Extra manifold traits for fixed-dimension types
+/// Traits to get dimension, supporting both fixed and dynamic
 template<class Class, int N>
 struct GetDimensionImpl {
-  // Compile-time dimensionality
-  static int GetDimension(const Class&) {
-    return N;
-  }
-};
-
-/// Extra manifold traits for variable-dimension types
-template<class Class>
-struct GetDimensionImpl<Class, Eigen::Dynamic> {
-  // Run-time dimensionality
+  // Get dimension at compile-time for fixed-size manifolds, and at
+  // run-time for dynamic-size manifolds.
   static int GetDimension(const Class& m) {
-    return m.dim();
+    if constexpr (N == Eigen::Dynamic) {
+      return m.dim();
+    } else {
+      return N;
+    }
   }
 };
 
@@ -95,7 +93,7 @@ struct ManifoldTraits: GetDimensionImpl<Class, Class::dimension> {
   GTSAM_CONCEPT_ASSERT(HasManifoldPrereqs<Class>);
 
   // Dimension of the manifold
-  enum { dimension = Class::dimension };
+  inline constexpr static auto dimension = Class::dimension;
 
   // Typedefs required by all manifold types.
   typedef Class ManifoldType;
@@ -134,16 +132,21 @@ class IsManifold {
 
 public:
 
-  typedef typename traits<T>::structure_category structure_category_tag;
-  static const int dim = traits<T>::dimension;
-  typedef typename traits<T>::ManifoldType ManifoldType;
-  typedef typename traits<T>::TangentVector TangentVector;
+  using structure_category_tag = typename traits<T>::structure_category;
+  static inline constexpr int dim = traits<T>::dimension;
+  using ManifoldType = typename traits<T>::ManifoldType;
+  using TangentVector = typename traits<T>::TangentVector;
+  // Concept marker: allows checking IsManifold<T>::value in templates
+  static constexpr bool value =
+    std::is_base_of_v<manifold_tag, structure_category_tag>;
 
-  BOOST_CONCEPT_USAGE(IsManifold) {
+  GTSAM_CONCEPT_USAGE(IsManifold) {
     static_assert(
-        (std::is_base_of<manifold_tag, structure_category_tag>::value),
+        value,
         "This type's structure_category trait does not assert it as a manifold (or derived)");
-    static_assert(TangentVector::SizeAtCompileTime == dim);
+    if constexpr (dim != Eigen::Dynamic) {
+      static_assert(TangentVector::SizeAtCompileTime == dim);
+    }
 
     // make sure Chart methods are defined
     v = traits<T>::Local(p, q);
@@ -159,10 +162,10 @@ private:
 /// Give fixed size dimension of a type, fails at compile time if dynamic
 template<typename T>
 struct FixedDimension {
-  typedef const int value_type;
-  static const int value = traits<T>::dimension;
+  using value_type = const int;
+  static inline constexpr int value = traits<T>::dimension;
   static_assert(value != Eigen::Dynamic,
-      "FixedDimension instantiated for dymanically-sized type.");
+      "FixedDimension instantiated for dynamically-sized type.");
 };
 } // \ namespace gtsam
 

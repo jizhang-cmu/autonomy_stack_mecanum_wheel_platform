@@ -97,7 +97,6 @@ Line3 transformTo(const Pose3 &wTc, const Line3 &wL,
   Rot3 cRw = wRc.inverse();
   Rot3 cRl = cRw * wL.R_;
 
-  Vector2 w_ab;
   Vector3 t = ((wL.R_).transpose() * wTc.translation());
   Vector2 c_ab(wL.a_ - t[0], wL.b_ - t[1]);
 

@@ -13,7 +13,7 @@ For instructions on updating the version of the [wrap library](https://github.co
   use the `-DGTSAM_PYTHON_VERSION=3.6` option when running `cmake` otherwise the default interpreter will be used.
 - If the interpreter is inside an environment (such as an anaconda environment or virtualenv environment),
   then the environment should be active while building GTSAM.
-- This wrapper needs `pyparsing(>=2.4.2)`, and `numpy(>=1.11.0)`. These can be installed as follows:
+- This wrapper needs [pyparsing(>=2.4.2)](https://github.com/pyparsing/pyparsing), [pybind-stubgen>=2.5.1](https://github.com/sizmailov/pybind11-stubgen) and [numpy(>=1.11.0)](https://numpy.org/). These can all be installed as follows:
 
   ```bash
   pip install -r <gtsam_folder>/python/dev_requirements.txt
@@ -33,6 +33,18 @@ For instructions on updating the version of the [wrap library](https://github.co
   - **NOTE**: if you don't want GTSAM to install to a system directory such as `/usr/local`, pass `-DCMAKE_INSTALL_PREFIX="./install"` to cmake to install GTSAM to a subdirectory of the build directory.
 
 - You can also directly run `make python-install` without running `make`, and it will compile all the dependencies accordingly.
+
+## Windows Installation
+
+See Windows Installation in INSTALL.md in the root directory.
+
+## Generate Docstrings
+
+The wrap library provides for building the Python wrapper with docstrings included, sourced from the C++ Doxygen comments. To build the Python wrapper with docstrings, follow these instructions:
+
+1. Build GTSAM with the flag `-DGTSAM_GENERATE_DOC_XML=1`. This will compile the `doc/Doxyfile.in` into a `Doxyfile` with `GENERATE_XML` set to `ON`.
+2. From the project root directory, run `doxygen build/<build_name>/doc/Doxyfile`. This will generate the Doxygen XML documentation in `xml/`.
+3. Build the Python wrapper with the CMake option `GTWRAP_ADD_DOCSTRINGS` enabled.
 
 ## Unit Tests
 

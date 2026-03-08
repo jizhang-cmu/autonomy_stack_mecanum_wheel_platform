@@ -22,7 +22,11 @@ if(GTSAM_UNSTABLE_AVAILABLE)
     print_enabled_config(${GTSAM_UNSTABLE_INSTALL_MATLAB_TOOLBOX} "Build MATLAB Toolbox for unstable")
 endif()
 
-if(NOT MSVC AND NOT XCODE_VERSION)
+if(MSVC)
+    print_enabled_config(${GTSAM_BUILD_WITH_PRECOMPILED_HEADERS} "Build with precompiled headers")
+endif()
+
+if(NOT MSVC AND NOT XCODE_VERSION AND NOT QNX)
     print_enabled_config(${GTSAM_BUILD_WITH_MARCH_NATIVE}     "Build for native architecture  ")
     print_config("Build type" "${CMAKE_BUILD_TYPE}")
     print_config("C compilation flags" "${CMAKE_C_FLAGS} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE_UPPER}}")
@@ -91,6 +95,7 @@ print_enabled_config(${GTSAM_ENABLE_MEMORY_SANITIZER}     "Build with Memory San
 print_enabled_config(${GTSAM_ROT3_EXPMAP}                 "Rot3 retract is full ExpMap     ")
 print_enabled_config(${GTSAM_POSE3_EXPMAP}                "Pose3 retract is full ExpMap    ")
 print_enabled_config(${GTSAM_DT_MERGING}                  "Enable branch merging in DecisionTree")
+print_enabled_config(${GTSAM_ENABLE_TIMING}               "Enable timing machinery")
 print_enabled_config(${GTSAM_ALLOW_DEPRECATED_SINCE_V43}  "Allow features deprecated in GTSAM 4.3")
 print_enabled_config(${GTSAM_SUPPORT_NESTED_DISSECTION}   "Metis-based Nested Dissection   ")
 print_enabled_config(${GTSAM_TANGENT_PREINTEGRATION}      "Use tangent-space preintegration")
@@ -106,5 +111,9 @@ print_enabled_config(${GTSAM_BUILD_PYTHON}                "Build Python module w
 if(GTSAM_BUILD_PYTHON)
     print_config("Python version" ${GTSAM_PYTHON_VERSION})
 endif()
+
+message(STATUS "Extra test flags")
+print_config("CTEST_EXTRA_ARGS" "${CTEST_EXTRA_ARGS}")
+print_config("PYTEST_EXTRA_ARGS" "${PYTEST_EXTRA_ARGS}")
 
 message(STATUS "===============================================================")

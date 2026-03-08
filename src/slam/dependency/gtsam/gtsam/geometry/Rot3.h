@@ -56,6 +56,8 @@ namespace gtsam {
  * @ingroup geometry
  */
 class GTSAM_EXPORT Rot3 : public LieGroup<Rot3, 3> {
+ public:
+  static constexpr size_t MatrixM = 3;
  private:
 
 #ifdef GTSAM_USE_QUATERNIONS
@@ -159,7 +161,11 @@ class GTSAM_EXPORT Rot3 : public LieGroup<Rot3, 3> {
     /// Rotations around Z, Y, then X axes as in http://en.wikipedia.org/wiki/Rotation_matrix, counterclockwise when looking from unchanging axis.
     inline static Rot3 RzRyRx(const Vector& xyz,
                               OptionalJacobian<3, 3> H = {}) {
-      assert(xyz.size() == 3);
+#ifndef NDEBUG
+      if (xyz.size() != 3) {
+        throw;
+      }
+#endif
       Rot3 out;
       if (H) {
         Vector3 Hx, Hy, Hz;
@@ -367,21 +373,16 @@ class GTSAM_EXPORT Rot3 : public LieGroup<Rot3, 3> {
     /// @name Lie Group
     /// @{
 
-    /**
-     * Exponential map at identity - create a rotation from canonical coordinates
-     * \f$ [R_x,R_y,R_z] \f$ using Rodrigues' formula
-     */
-    static Rot3 Expmap(const Vector3& v, OptionalJacobian<3,3> H = {}) {
-      if(H) *H = Rot3::ExpmapDerivative(v);
-#ifdef GTSAM_USE_QUATERNIONS
-      return traits<gtsam::Quaternion>::Expmap(v);
-#else
-      return Rot3(traits<SO3>::Expmap(v));
-#endif
-    }
+    using LieAlgebra = Matrix3;
 
     /**
-     * Log map at identity - returns the canonical coordinates
+     * Exponential map - create a rotation from canonical coordinates
+     * \f$ [R_x,R_y,R_z] \f$ using Rodrigues' formula
+     */
+    static Rot3 Expmap(const Vector3& v, OptionalJacobian<3,3> H = {});
+
+    /**
+     * Log map - returns the canonical coordinates
      * \f$ [R_x,R_y,R_z] \f$ of this rotation
      */
     static Vector3 Logmap(const Rot3& R, OptionalJacobian<3,3> H = {});
@@ -402,6 +403,12 @@ class GTSAM_EXPORT Rot3 : public LieGroup<Rot3, 3> {
     };
 
     using LieGroup<Rot3, 3>::inverse; // version with derivative
+
+    /// Hat maps from tangent vector to Lie algebra
+    static inline Matrix3 Hat(const Vector3& xi) { return SO3::Hat(xi); }
+
+    /// Vee maps from Lie algebra to tangent vector
+    static inline Vector3 Vee(const Matrix3& X) { return SO3::Vee(X); }
 
     /// @}
     /// @name Group Action on Point3
@@ -446,9 +453,6 @@ class GTSAM_EXPORT Rot3 : public LieGroup<Rot3, 3> {
      * Return 3*3 transpose (inverse) rotation matrix
      */
     Matrix3 transpose() const;
-
-    /// @deprecated, this is base 1, and was just confusing
-    Point3 column(int index) const;
 
     Point3 r1() const; ///< first column
     Point3 r2() const; ///< second column
@@ -518,17 +522,29 @@ class GTSAM_EXPORT Rot3 : public LieGroup<Rot3, 3> {
     /**
      * @brief Spherical Linear intERPolation between *this and other
      * @param t a value between 0 and 1
-     * @param other final point of iterpolation geodesic on manifold
+     * @param other final point of interpolation geodesic on manifold
      */
     Rot3 slerp(double t, const Rot3& other) const;
+
+    /// Vee maps from Lie algebra to tangent vector
+    inline Vector9 vec(OptionalJacobian<9, 3> H = {}) const { return SO3(matrix()).vec(H); }
 
     /// Output stream operator
     GTSAM_EXPORT friend std::ostream &operator<<(std::ostream &os, const Rot3& p);
 
     /// @}
+    /// @name deprecated
+    /// @{
+
+#ifdef GTSAM_ALLOW_DEPRECATED_SINCE_V43
+    /// @deprecated, this is base 1, and was just confusing
+    Point3 column(int index) const;
+#endif
+
+    /// @}
 
    private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
     /** Serialization function */
     friend class boost::serialization::access;
     template <class ARCHIVE>
@@ -576,11 +592,11 @@ class GTSAM_EXPORT Rot3 : public LieGroup<Rot3, 3> {
   GTSAM_EXPORT std::pair<Matrix3, Vector3> RQ(
       const Matrix3& A, OptionalJacobian<3, 9> H = {});
 
-  template<>
-  struct traits<Rot3> : public internal::LieGroup<Rot3> {};
+  template <>
+struct traits<Rot3> : public internal::MatrixLieGroup<Rot3, 3> {};
 
-  template<>
-  struct traits<const Rot3> : public internal::LieGroup<Rot3> {};
+template <>
+struct traits<const Rot3> : public internal::MatrixLieGroup<Rot3, 3> {};
   
 }  // namespace gtsam
 

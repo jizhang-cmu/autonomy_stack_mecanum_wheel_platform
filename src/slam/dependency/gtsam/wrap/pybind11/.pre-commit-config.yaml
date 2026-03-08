@@ -25,33 +25,28 @@ repos:
 
 # Clang format the codebase automatically
 - repo: https://github.com/pre-commit/mirrors-clang-format
-  rev: "v16.0.6"
+  rev: "v20.1.8"
   hooks:
   - id: clang-format
     types_or: [c++, c, cuda]
 
-# Black, the code formatter, natively supports pre-commit
-- repo: https://github.com/psf/black
-  rev: "23.3.0" # Keep in sync with blacken-docs
-  hooks:
-  - id: black
-
-# Ruff, the Python auto-correcting linter written in Rust
+# Ruff, the Python auto-correcting linter/formatter written in Rust
 - repo: https://github.com/astral-sh/ruff-pre-commit
-  rev: v0.0.276
+  rev: v0.12.7
   hooks:
-  - id: ruff
+  - id: ruff-check
     args: ["--fix", "--show-fixes"]
+  - id: ruff-format
 
 # Check static types with mypy
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: "v1.4.1"
+  rev: "v1.17.1"
   hooks:
   - id: mypy
     args: []
     exclude: ^(tests|docs)/
     additional_dependencies:
-    - markdown-it-py<3 # Drop this together with dropping Python 3.7 support.
+    - markdown-it-py
     - nox
     - rich
     - types-setuptools
@@ -67,7 +62,7 @@ repos:
 
 # Standard hooks
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: "v4.4.0"
+  rev: "v5.0.0"
   hooks:
   - id: check-added-large-files
   - id: check-case-conflict
@@ -81,24 +76,26 @@ repos:
   - id: mixed-line-ending
   - id: requirements-txt-fixer
   - id: trailing-whitespace
+    exclude: \.patch?$
 
 # Also code format the docs
-- repo: https://github.com/asottile/blacken-docs
-  rev: "1.14.0"
+- repo: https://github.com/adamchainz/blacken-docs
+  rev: "1.19.1"
   hooks:
   - id: blacken-docs
     additional_dependencies:
-    - black==23.3.0 # keep in sync with black hook
+    - black==23.*
 
 # Changes tabs to spaces
 - repo: https://github.com/Lucas-C/pre-commit-hooks
-  rev: "v1.5.1"
+  rev: "v1.5.5"
   hooks:
   - id: remove-tabs
+    exclude: (^docs/.*|\.patch)?$
 
 # Avoid directional quotes
 - repo: https://github.com/sirosen/texthooks
-  rev: "0.5.0"
+  rev: "0.7.1"
   hooks:
   - id: fix-ligatures
   - id: fix-smartquotes
@@ -111,28 +108,19 @@ repos:
   - id: rst-directive-colons
   - id: rst-inline-touching-normal
 
-# Checks the manifest for missing files (native support)
-- repo: https://github.com/mgedmin/check-manifest
-  rev: "0.49"
-  hooks:
-  - id: check-manifest
-    # This is a slow hook, so only run this if --hook-stage manual is passed
-    stages: [manual]
-    additional_dependencies: [cmake, ninja]
-
 # Check for spelling
 # Use tools/codespell_ignore_lines_from_errors.py
 # to rebuild .codespell-ignore-lines
 - repo: https://github.com/codespell-project/codespell
-  rev: "v2.2.5"
+  rev: "v2.4.1"
   hooks:
   - id: codespell
     exclude: ".supp$"
-    args: ["-x.codespell-ignore-lines", "-Lccompiler"]
+    args: ["-x.codespell-ignore-lines", "-Lccompiler,intstruct"]
 
 # Check for common shell mistakes
 - repo: https://github.com/shellcheck-py/shellcheck-py
-  rev: "v0.9.0.5"
+  rev: "v0.10.0.1"
   hooks:
   - id: shellcheck
 
@@ -142,12 +130,20 @@ repos:
   - id: disallow-caps
     name: Disallow improper capitalization
     language: pygrep
-    entry: PyBind|Numpy|Cmake|CCache|PyTest
+    entry: PyBind|\bNumpy\b|Cmake|CCache|PyTest
     exclude: ^\.pre-commit-config.yaml$
 
 # PyLint has native support - not always usable, but works for us
 - repo: https://github.com/PyCQA/pylint
-  rev: "v3.0.0a6"
+  rev: "v3.3.7"
   hooks:
   - id: pylint
     files: ^pybind11
+
+# Check schemas on some of our YAML files
+- repo: https://github.com/python-jsonschema/check-jsonschema
+  rev: 0.33.2
+  hooks:
+  - id: check-readthedocs
+  - id: check-github-workflows
+  - id: check-dependabot

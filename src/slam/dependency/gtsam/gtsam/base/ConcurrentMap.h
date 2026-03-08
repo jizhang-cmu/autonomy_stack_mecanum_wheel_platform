@@ -48,7 +48,7 @@ using ConcurrentMapBase = gtsam::FastMap<KEY, VALUE>;
 
 #endif
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/serialization/nvp.hpp>
 #include <boost/serialization/split_member.hpp>
 #endif
@@ -85,6 +85,8 @@ public:
   /** Copy constructor from the base map class */
   ConcurrentMap(const Base& x) : Base(x) {}
 
+  ConcurrentMap& operator=(const ConcurrentMap& other) = default;
+
   /** Handy 'exists' function */
   bool exists(const KEY& e) const { return this->count(e); }
 
@@ -101,7 +103,7 @@ public:
 #endif
 
 private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template<class Archive>

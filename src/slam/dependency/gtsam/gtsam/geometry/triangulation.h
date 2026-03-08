@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "gtsam/geometry/Point3.h"
+#include <gtsam/geometry/Point3.h>
 #include <gtsam/geometry/Cal3Bundler.h>
 #include <gtsam/geometry/Cal3Fisheye.h>
 #include <gtsam/geometry/Cal3Unified.h>
@@ -317,7 +317,11 @@ typename CAMERA::MeasurementVector undistortMeasurements(
     const CameraSet<CAMERA>& cameras,
     const typename CAMERA::MeasurementVector& measurements) {
   const size_t nrMeasurements = measurements.size();
-  assert(nrMeasurements == cameras.size());
+#ifndef NDEBUG
+  if (nrMeasurements != cameras.size()) {
+    throw;
+  }
+#endif
   typename CAMERA::MeasurementVector undistortedMeasurements(nrMeasurements);
   for (size_t ii = 0; ii < nrMeasurements; ++ii) {
     // Calibrate with cal and uncalibrate with pinhole version of cal so that
@@ -618,7 +622,7 @@ struct GTSAM_EXPORT TriangulationParameters {
 
 private:
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION  ///
+#if GTSAM_ENABLE_BOOST_SERIALIZATION  ///
   /// Serialization function
   friend class boost::serialization::access;
   template<class ARCHIVE>
@@ -683,7 +687,7 @@ class TriangulationResult : public std::optional<Point3> {
   }
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION  ///
+#if GTSAM_ENABLE_BOOST_SERIALIZATION  ///
   /// Serialization function
   friend class boost::serialization::access;
   template <class ARCHIVE>
@@ -754,10 +758,17 @@ TriangulationResult triangulateSafe(const CameraSet<CAMERA>& cameras,
 }
 
 // Vector of Cameras - used by the Python/MATLAB wrapper
+using CameraSetPinholePoseCal3Bundler = CameraSet<PinholePose<Cal3Bundler>>;
+using CameraSetPinholePoseCal3_S2 = CameraSet<PinholePose<Cal3_S2>>;
+using CameraSetPinholePoseCal3DS2 = CameraSet<PinholePose<Cal3DS2>>;
+using CameraSetPinholePoseCal3Fisheye = CameraSet<PinholePose<Cal3Fisheye>>;
+using CameraSetPinholePoseCal3Unified = CameraSet<PinholePose<Cal3Unified>>;
+
 using CameraSetCal3Bundler = CameraSet<PinholeCamera<Cal3Bundler>>;
 using CameraSetCal3_S2 = CameraSet<PinholeCamera<Cal3_S2>>;
 using CameraSetCal3DS2 = CameraSet<PinholeCamera<Cal3DS2>>;
 using CameraSetCal3Fisheye = CameraSet<PinholeCamera<Cal3Fisheye>>;
 using CameraSetCal3Unified = CameraSet<PinholeCamera<Cal3Unified>>;
+
 using CameraSetSpherical = CameraSet<SphericalCamera>;
 } // \namespace gtsam

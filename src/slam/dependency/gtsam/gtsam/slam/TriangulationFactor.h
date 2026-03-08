@@ -34,6 +34,8 @@ public:
 
   /// CAMERA type
   using Camera = CAMERA;
+  /// shorthand for measurement type, e.g. Point2 or StereoPoint2
+  using Measurement = typename CAMERA::Measurement;
 
 protected:
 
@@ -42,9 +44,6 @@ protected:
 
   /// shorthand for this class
   using This = TriangulationFactor<CAMERA>;
-
-  /// shorthand for measurement type, e.g. Point2 or StereoPoint2
-  using Measurement = typename CAMERA::Measurement;
 
   // Keep a copy of measurement and calibration for I/O
   const CAMERA camera_; ///< CAMERA in which this landmark was seen
@@ -188,7 +187,7 @@ public:
 
 private:
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION  ///
+#if GTSAM_ENABLE_BOOST_SERIALIZATION  ///
   /// Serialization function
   friend class boost::serialization::access;
   template<class ARCHIVE>

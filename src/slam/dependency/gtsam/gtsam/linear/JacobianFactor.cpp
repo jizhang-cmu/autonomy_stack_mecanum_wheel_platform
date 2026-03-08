@@ -32,6 +32,7 @@
 #include <gtsam/base/cholesky.h>
 
 #include <cmath>
+#include <cassert>
 #include <sstream>
 #include <stdexcept>
 
@@ -40,8 +41,8 @@ using namespace std;
 namespace gtsam {
 
 // Typedefs used in constructors below.
-using Dims = std::vector<Eigen::Index>;
-using Pairs = std::vector<std::pair<Eigen::Index, Matrix>>;
+using Dims = std::vector<Key>;
+using Pairs = std::vector<std::pair<Key, Matrix>>;
 
 /* ************************************************************************* */
 JacobianFactor::JacobianFactor() :
@@ -109,6 +110,28 @@ JacobianFactor::JacobianFactor(const HessianFactor& factor)
     // indefinite system
     throw IndeterminantLinearSystemException(factor.keys().front());
   }
+}
+
+  /* ************************************************************************* */
+void JacobianFactor::checkAb(const SharedDiagonal& model,
+                             const VerticalBlockMatrix& augmentedMatrix) const {
+  // Check noise model dimension
+  if (model && (DenseIndex)model->dim() != augmentedMatrix.rows())
+    throw InvalidNoiseModel(augmentedMatrix.rows(), model->dim());
+
+  // Check number of variables
+  if ((DenseIndex)Base::keys_.size() != augmentedMatrix.nBlocks() - 1)
+    throw std::invalid_argument(
+        "Error in JacobianFactor constructor input. Number of provided keys "
+        "plus one for the RHS vector must equal the number of provided "
+        "matrix blocks.");
+
+  // Check RHS dimension
+  if (augmentedMatrix(augmentedMatrix.nBlocks() - 1).cols() != 1)
+    throw std::invalid_argument(
+        "Error in JacobianFactor constructor input. The last provided "
+        "matrix block must be the RHS vector, but the last provided block "
+        "had more than one column.");
 }
 
 /* ************************************************************************* */
@@ -579,16 +602,19 @@ void JacobianFactor::updateHessian(const KeyVector& infoKeys,
     // Ab_ is the augmented Jacobian matrix A, and we perform I += A'*A below
     DenseIndex n = Ab_.nBlocks() - 1, N = info->nBlocks() - 1;
 
+    // Pre-calculate slots
+    vector<DenseIndex> slots(n + 1);
+    for (DenseIndex j = 0; j < n; ++j) slots[j] = Slot(infoKeys, keys_[j]);
+    slots[n] = N;
+
     // Apply updates to the upper triangle
     // Loop over blocks of A, including RHS with j==n
-    vector<DenseIndex> slots(n+1);
     for (DenseIndex j = 0; j <= n; ++j) {
       Eigen::Block<const Matrix> Ab_j = Ab_(j);
-      const DenseIndex J = (j == n) ? N : Slot(infoKeys, keys_[j]);
-      slots[j] = J;
+      const DenseIndex J = slots[j];
       // Fill off-diagonal blocks with Ai'*Aj
       for (DenseIndex i = 0; i < j; ++i) {
-        const DenseIndex I = slots[i];  // because i<j, slots[i] is valid.
+        const DenseIndex I = slots[i];
         info->updateOffDiagonalBlock(I, J, Ab_(i).transpose() * Ab_j);
       }
       // Fill diagonal block with Aj'*Aj
@@ -801,8 +827,6 @@ std::pair<GaussianConditional::shared_ptr, JacobianFactor::shared_ptr> Eliminate
     // The inplace variant will have no valid rows anymore below m==n
     // and only entries above the diagonal are valid.
     inplace_QR(Ab.matrix());
-    // We zero below the diagonal to agree with the result from noieModel QR
-    Ab.matrix().triangularView<Eigen::StrictlyLower>().setZero();
     size_t m = Ab.rows(), n = Ab.cols() - 1;
     size_t maxRank = min(m, n);
     jointFactor->model_ = noiseModel::Unit::Create(maxRank);

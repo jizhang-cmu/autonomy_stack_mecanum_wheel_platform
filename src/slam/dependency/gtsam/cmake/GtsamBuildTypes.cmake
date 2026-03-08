@@ -98,6 +98,7 @@ if(MSVC)
   # Avoid literally hundreds to thousands of warnings:
   list_append_cache(GTSAM_COMPILE_OPTIONS_PUBLIC
     /wd4267 # warning C4267: 'initializing': conversion from 'size_t' to 'int', possible loss of data
+    /permissive- # Need to enforce standards compliance or else weird behavior will show up. See https://github.com/borglab/gtsam/pull/2268
   )
 
   add_compile_options(/wd4005)
@@ -108,13 +109,15 @@ endif()
 
 # Other (non-preprocessor macros) compiler flags:
 if(MSVC)
+  set(CMAKE_3_15 $<VERSION_LESS:${CMAKE_VERSION},3.15>)
+  set(CMAKE_3_25 $<VERSION_LESS:${CMAKE_VERSION},3.25>)
   # Common to all configurations, next for each configuration:
-  set(GTSAM_COMPILE_OPTIONS_PRIVATE_COMMON          /W3 /GR /EHsc /MP  CACHE STRING "(User editable) Private compiler flags for all configurations.")
-  set(GTSAM_COMPILE_OPTIONS_PRIVATE_DEBUG           /MDd /Zi /Ob0 /Od /RTC1  CACHE STRING "(User editable) Private compiler flags for Debug configuration.")
-  set(GTSAM_COMPILE_OPTIONS_PRIVATE_RELWITHDEBINFO  /MD /O2 /D /Zi /d2Zi+  CACHE STRING "(User editable) Private compiler flags for RelWithDebInfo configuration.")
-  set(GTSAM_COMPILE_OPTIONS_PRIVATE_RELEASE         /MD /O2  CACHE STRING "(User editable) Private compiler flags for Release configuration.")
-  set(GTSAM_COMPILE_OPTIONS_PRIVATE_PROFILING       /MD /O2  /Zi  CACHE STRING "(User editable) Private compiler flags for Profiling configuration.")
-  set(GTSAM_COMPILE_OPTIONS_PRIVATE_TIMING          /MD /O2  CACHE STRING "(User editable) Private compiler flags for Timing configuration.")
+  set(GTSAM_COMPILE_OPTIONS_PRIVATE_COMMON          /W3 /WX /GR /EHsc /MP  CACHE STRING "(User editable) Private compiler flags for all configurations.")
+  set(GTSAM_COMPILE_OPTIONS_PRIVATE_DEBUG           $<${CMAKE_3_15}:/MDd> $<${CMAKE_3_25}:/Zi> /Ob0 /Od /RTC1  CACHE STRING "(User editable) Private compiler flags for Debug configuration.")
+  set(GTSAM_COMPILE_OPTIONS_PRIVATE_RELWITHDEBINFO  $<${CMAKE_3_15}:/MD> /O2  $<${CMAKE_3_25}:/Zi>  CACHE STRING "(User editable) Private compiler flags for RelWithDebInfo configuration.")
+  set(GTSAM_COMPILE_OPTIONS_PRIVATE_RELEASE         $<${CMAKE_3_15}:/MD> /O2  CACHE STRING "(User editable) Private compiler flags for Release configuration.")
+  set(GTSAM_COMPILE_OPTIONS_PRIVATE_PROFILING       $<${CMAKE_3_15}:/MD> /O2  $<${CMAKE_3_25}:/Zi>  CACHE STRING "(User editable) Private compiler flags for Profiling configuration.")
+  set(GTSAM_COMPILE_OPTIONS_PRIVATE_TIMING          $<${CMAKE_3_15}:/MD> /O2  CACHE STRING "(User editable) Private compiler flags for Timing configuration.")
 else()
   # Common to all configurations, next for each configuration:
 
@@ -129,13 +132,15 @@ else()
   endif()
 
   set(GTSAM_COMPILE_OPTIONS_PRIVATE_COMMON
+    -Werror                                        # Enable warnings as errors
     -Wall                                          # Enable common warnings
-    -fPIC                                          # ensure proper code generation for shared libraries
-    $<$<CXX_COMPILER_ID:GNU>:-Wreturn-local-addr -Werror=return-local-addr>            # Error: return local address
-    $<$<CXX_COMPILER_ID:Clang>:-Wreturn-stack-address   -Werror=return-stack-address>  # Error: return local address
-    $<$<CXX_COMPILER_ID:Clang>:-Wno-weak-template-vtables>  # TODO(dellaert): don't know how to resolve
+    -Wpedantic                                     # Enable pedantic warnings
+    $<$<COMPILE_LANGUAGE:CXX>:-Wextra -Wno-unused-parameter> # Enable extra warnings, but ignore no-unused-parameter (as we ifdef out chunks of code)
+    $<$<CXX_COMPILER_ID:GNU>:-Wreturn-local-addr>            # Error: return local address
+    $<$<CXX_COMPILER_ID:Clang>:-Wreturn-stack-address>       # Error: return local address
+    $<$<CXX_COMPILER_ID:Clang>:-Wno-weak-template-vtables>   # TODO(dellaert): don't know how to resolve
     $<$<CXX_COMPILER_ID:Clang>:-Wno-weak-vtables>  # TODO(dellaert): don't know how to resolve
-    -Wreturn-type  -Werror=return-type             # Error on missing return()
+    -Wreturn-type                                  # Error on missing return()
     -Wformat -Werror=format-security               # Error on wrong printf() arguments
     $<$<COMPILE_LANGUAGE:CXX>:${flag_override_}>   # Enforce the use of the override keyword
     #
@@ -155,20 +160,9 @@ mark_as_advanced(GTSAM_COMPILE_OPTIONS_PRIVATE_PROFILING)
 mark_as_advanced(GTSAM_COMPILE_OPTIONS_PRIVATE_TIMING)
 
 # Enable C++17:
-if (NOT CMAKE_VERSION VERSION_LESS 3.8)
-    set(GTSAM_COMPILE_FEATURES_PUBLIC "cxx_std_17" CACHE STRING "CMake compile features property for all gtsam targets.")
-    # See: https://cmake.org/cmake/help/latest/prop_tgt/CXX_EXTENSIONS.html
-    set(CMAKE_CXX_EXTENSIONS OFF)
-    if (MSVC)
-      # NOTE(jlblanco): seems to be required in addition to the cxx_std_17 above?
-      list_append_cache(GTSAM_COMPILE_OPTIONS_PUBLIC /std:c++17)
-    endif()
-else()
-  # Old cmake versions:
-  if (NOT MSVC)
-    list_append_cache(GTSAM_COMPILE_OPTIONS_PUBLIC $<$<COMPILE_LANGUAGE:CXX>:-std=c++17>)
-  endif()
-endif()
+set(GTSAM_COMPILE_FEATURES_PUBLIC "cxx_std_17" CACHE STRING "CMake compile features property for all gtsam targets.")
+# See: https://cmake.org/cmake/help/latest/prop_tgt/CXX_EXTENSIONS.html
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 # Merge all user-defined flags into the variables that are to be actually used by CMake:
 foreach(build_type "common" ${GTSAM_CMAKE_CONFIGURATION_TYPES})
@@ -177,6 +171,12 @@ foreach(build_type "common" ${GTSAM_CMAKE_CONFIGURATION_TYPES})
   append_config_if_not_empty(GTSAM_COMPILE_DEFINITIONS_PRIVATE  ${build_type})
   append_config_if_not_empty(GTSAM_COMPILE_DEFINITIONS_PUBLIC   ${build_type})
 endforeach()
+
+# Check if timing is enabled and add appropriate definition flag
+if(GTSAM_ENABLE_TIMING AND(NOT ${CMAKE_BUILD_TYPE} EQUAL "Timing"))
+  message(STATUS "Enabling timing for non-timing build")
+  list_append_cache(GTSAM_COMPILE_DEFINITIONS_PRIVATE "ENABLE_TIMING")
+endif()
 
 # Linker flags:
 set(GTSAM_CMAKE_SHARED_LINKER_FLAGS_TIMING  "${CMAKE_SHARED_LINKER_FLAGS_RELEASE}" CACHE STRING "Linker flags during timing builds.")
@@ -208,7 +208,8 @@ if(${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
   endif()
 endif()
 
-if (NOT MSVC)
+if ((NOT MSVC) AND (NOT QNX))
+  option(GTSAM_BUILD_WITH_MARCH_NATIVE  "Enable/Disable building with all instructions supported by native architecture (binary may not be portable!)" ON)
   if(GTSAM_BUILD_WITH_MARCH_NATIVE)
     # Check if Apple OS and compiler is [Apple]Clang
     if(APPLE AND (${CMAKE_CXX_COMPILER_ID} MATCHES "^(Apple)?Clang$"))
@@ -250,9 +251,9 @@ endif()
 
 # Make common binary output directory when on Windows
 if(WIN32)
-  set(RUNTIME_OUTPUT_PATH "${GTSAM_BINARY_DIR}/bin")
-  set(EXECUTABLE_OUTPUT_PATH "${GTSAM_BINARY_DIR}/bin")
-  set(LIBRARY_OUTPUT_PATH "${GTSAM_BINARY_DIR}/lib")
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${GTSAM_BINARY_DIR}/bin")
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${GTSAM_BINARY_DIR}/lib")
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${GTSAM_BINARY_DIR}/lib")
 endif()
 
 # Set up build type list for cmake-gui

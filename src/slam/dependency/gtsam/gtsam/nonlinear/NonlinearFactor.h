@@ -22,13 +22,14 @@
 #pragma once
 
 #include <gtsam/nonlinear/Values.h>
+#include <gtsam/hybrid/HybridValues.h>
 #include <gtsam/linear/NoiseModel.h>
 #include <gtsam/linear/JacobianFactor.h>
 #include <gtsam/inference/Factor.h>
 #include <gtsam/base/OptionalJacobian.h>
 #include <gtsam/base/utilities.h>
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/serialization/base_object.hpp>
 #endif
 #include <cstddef>
@@ -138,7 +139,7 @@ public:
    * when the constraint is *NOT* fulfilled.
    * @return true if the constraint is active
    */
-  virtual bool active(const Values& /*c*/) const { return true; }
+  virtual bool active(const Values& c) const { return true; }
 
   /** linearize to a GaussianFactor */
   virtual std::shared_ptr<GaussianFactor>
@@ -280,6 +281,8 @@ public:
    */
   double weight(const Values& c) const;
 
+  using NonlinearFactor::error;
+
   /**
    * Calculate the error of the factor.
    * This is the log-likelihood, e.g. \f$ 0.5(h(x)-z)^2/\sigma^2 \f$ in case of Gaussian.
@@ -302,7 +305,7 @@ public:
   shared_ptr cloneWithNewNoiseModel(const SharedNoiseModel newNoise) const;
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template<class ARCHIVE>
@@ -433,7 +436,7 @@ class NoiseModelFactorN
       public detail::NoiseModelFactorAliases<ValueTypes...> {
  public:
   /// N is the number of variables (N-way factor)
-  enum { N = sizeof...(ValueTypes) };
+  inline constexpr static auto N = sizeof...(ValueTypes);
 
   using NoiseModelFactor::unwhitenedError;
 
@@ -714,7 +717,7 @@ protected:
     }
   }
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template <class ARCHIVE>

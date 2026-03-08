@@ -24,7 +24,7 @@
 #include <gtsam/global_includes.h>
 #include <gtsam/inference/VariableSlots.h>
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/serialization/version.hpp>
 #include <boost/serialization/split_member.hpp>
 #endif
@@ -117,6 +117,8 @@ namespace gtsam {
     /** Conversion from HessianFactor (does Cholesky to obtain Jacobian matrix) */
     explicit JacobianFactor(const HessianFactor& hf);
 
+    JacobianFactor& operator=(const JacobianFactor& jf) = default;
+
     /** default constructor for I/O */
     JacobianFactor();
 
@@ -143,13 +145,17 @@ namespace gtsam {
     template<typename TERMS>
     JacobianFactor(const TERMS& terms, const Vector& b, const SharedDiagonal& model = SharedDiagonal());
 
-    /** Constructor with arbitrary number keys, and where the augmented matrix is given all together
-     *  instead of in block terms.  Note that only the active view of the provided augmented matrix
-     *  is used, and that the matrix data is copied into a newly-allocated matrix in the constructed
-     *  factor. */
-    template<typename KEYS>
-    JacobianFactor(
-      const KEYS& keys, const VerticalBlockMatrix& augmentedMatrix, const SharedDiagonal& sigmas = SharedDiagonal());
+    /** Constructor with arbitrary number keys, and where the augmented matrix
+     * is given all together instead of in block terms.
+     */
+    template <typename KEYS>
+    JacobianFactor(const KEYS& keys, const VerticalBlockMatrix& augmentedMatrix,
+                   const SharedDiagonal& sigmas = SharedDiagonal());
+
+    /** Construct with an rvalue VerticalBlockMatrix, to allow std::move. */
+    template <typename KEYS>
+    JacobianFactor(const KEYS& keys, VerticalBlockMatrix&& augmentedMatrix,
+                   const SharedDiagonal& model);
 
     /**
      * Build a dense joint factor from all the factors in a factor graph.  If a VariableSlots
@@ -396,7 +402,11 @@ namespace gtsam {
     template<typename TERMS>
     void fillTerms(const TERMS& terms, const Vector& b, const SharedDiagonal& noiseModel);
 
-  private:
+    /// Common code between VerticalBlockMatrix constructors
+    void checkAb(const SharedDiagonal& model,
+                 const VerticalBlockMatrix& augmentedMatrix) const;
+
+   private:
 
     /**
      * Helper function for public constructors:
@@ -421,7 +431,7 @@ namespace gtsam {
     // be very selective on who can access these private methods:
     template<typename T> friend class ExpressionFactor;
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
     /** Serialization function */
     friend class boost::serialization::access;
     template<class ARCHIVE>
@@ -468,7 +478,7 @@ struct traits<JacobianFactor> : public Testable<JacobianFactor> {
 
 } // \ namespace gtsam
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 BOOST_CLASS_VERSION(gtsam::JacobianFactor, 1)
 #endif
 

@@ -117,6 +117,12 @@ namespace gtsam {
   }
 
   /* ************************************************************************* */
+  Rot3 Rot3::Expmap(const Vector3& v, OptionalJacobian<3,3> H) {
+    if(H) *H = Rot3::ExpmapDerivative(v);
+    return traits<gtsam::Quaternion>::Expmap(v);
+  }
+
+  /* ************************************************************************* */
   Vector3 Rot3::Logmap(const Rot3& R, OptionalJacobian<3, 3> H) {
     return traits<gtsam::Quaternion>::Logmap(R.quaternion_, H);
   }

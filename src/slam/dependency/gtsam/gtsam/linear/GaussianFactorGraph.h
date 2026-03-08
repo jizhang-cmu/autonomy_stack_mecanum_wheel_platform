@@ -313,7 +313,7 @@ namespace gtsam {
      *  the dense elimination function specified in \c function (default EliminatePreferCholesky),
      *  followed by back-substitution in the Bayes tree resulting from elimination.  Is equivalent
      *  to calling graph.eliminateMultifrontal()->optimize(). */
-    VectorValues optimize(const Ordering&,
+    VectorValues optimize(const Ordering& ordering,
       const Eliminate& function = EliminationTraitsType::DefaultEliminate) const;
 
     /**
@@ -400,7 +400,7 @@ namespace gtsam {
     /// @}
 
   private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
     /** Serialization function */
     friend class boost::serialization::access;
     template<class ARCHIVE>

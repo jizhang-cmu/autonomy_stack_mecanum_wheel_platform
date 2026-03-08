@@ -76,10 +76,11 @@ TEST(GaussianBayesNet, Evaluate1) {
   // the normalization constant 1.0/sqrt((2*pi*Sigma).det()).
   // The covariance matrix inv(Sigma) = R'*R, so the determinant is
   const double constant = sqrt((invSigma / (2 * M_PI)).determinant());
-  EXPECT_DOUBLES_EQUAL(log(constant),
-                       smallBayesNet.at(0)->logNormalizationConstant() +
-                           smallBayesNet.at(1)->logNormalizationConstant(),
+  EXPECT_DOUBLES_EQUAL(-log(constant),
+                       smallBayesNet.at(0)->negLogConstant() +
+                           smallBayesNet.at(1)->negLogConstant(),
                        1e-9);
+  EXPECT_DOUBLES_EQUAL(-log(constant), smallBayesNet.negLogConstant(), 1e-9);
   const double actual = smallBayesNet.evaluate(mean);
   EXPECT_DOUBLES_EQUAL(constant, actual, 1e-9);
 }
@@ -185,9 +186,15 @@ TEST(GaussianBayesNet, sample) {
   std::mt19937_64 rng(4242);
   auto actual3 = gbn.sample(&rng);
   EXPECT_LONGS_EQUAL(2, actual.size());
-  // regression is not repeatable across platforms/versions :-(
-  // EXPECT(assert_equal(Vector2(20.0129382, 40.0039798), actual[X(1)], 1e-5));
-  // EXPECT(assert_equal(Vector2(110.032083, 230.039811), actual[X(0)], 1e-5));
+
+  // regressions
+#if __APPLE__ || _WIN32
+  EXPECT(assert_equal(Vector2(20.0129382, 40.0039798), actual[X(1)], 1e-5));
+  EXPECT(assert_equal(Vector2(110.032083, 230.039811), actual[X(0)], 1e-5));
+#elif __linux__
+  EXPECT(assert_equal(Vector2(20.0070499, 39.9942591), actual[X(1)], 1e-5));
+  EXPECT(assert_equal(Vector2(109.976501, 229.990945), actual[X(0)], 1e-5));
+#endif
 }
 
 /* ************************************************************************* */

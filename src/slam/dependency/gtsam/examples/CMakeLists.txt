@@ -1,7 +1,3 @@
-set (excluded_examples
-    "elaboratePoint2KalmanFilter.cpp"
-)
-
 # if GTSAM_ENABLE_BOOST_SERIALIZATION is not set then SolverComparer.cpp will not compile
 if (NOT GTSAM_ENABLE_BOOST_SERIALIZATION)
     list (APPEND excluded_examples

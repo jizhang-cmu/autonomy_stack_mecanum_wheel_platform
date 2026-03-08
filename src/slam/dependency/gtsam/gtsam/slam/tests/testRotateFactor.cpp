@@ -14,6 +14,9 @@
 
 #include <vector>
 
+#if defined(__GNUC__) && !defined(__clang__)
+#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+#endif
 using namespace std;
 using namespace std::placeholders;
 using namespace gtsam;

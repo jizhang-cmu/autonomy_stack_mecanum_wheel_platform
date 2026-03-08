@@ -46,6 +46,30 @@ namespace gtsam {
  * calibration (i.e., are from the same camera), use SmartProjectionPoseFactor
  * instead! If the calibration should be optimized, as well, use
  * SmartProjectionFactor instead!
+ *
+ * <b>Note on Template Parameter `CAMERA`:</b>
+ * While this factor is templated on `CAMERA` to allow for generality (e.g.,
+ * `SphericalCamera`), the current internal implementation for linearization
+ * (specifically, methods like `createHessianFactor` involving Schur complement
+ * calculations inherited or adapted from base classes) has limitations. It
+ * implicitly assumes that the CAMERA only has a Pose3 unknown.
+ *
+ * Consequently:
+ * - This factor works correctly with `CAMERA` types where this is the case,
+ *   such as `PinholePose<CALIBRATION>` or `SphericalCamera`.
+ * - Using `CAMERA` types where `dimension != 6`, such as
+ *   `PinholeCamera<CALIBRATION>` (which has dimension `6 + CalDim`), will lead
+ *   to compilation errors due to matrix dimension mismatches.
+ *
+ * Therefore, for standard pinhole cameras within a fixed rig, use
+ * `PinholePose<CALIBRATION>` as the `CAMERA` template parameter when defining
+ * the `CameraSet` passed to this factor's constructor.
+ *
+ * TODO(dellaert): Refactor the internal linearization logic (e.g., in
+ * `createHessianFactor`) to explicitly compute Jacobians with respect to the
+ * 6-DoF body pose by correctly applying the chain rule, rather than relying on
+ * `traits<CAMERA>::dimension` for downstream calculations.
+ *
  * @ingroup slam
  */
 template <class CAMERA>
@@ -349,7 +373,7 @@ class SmartProjectionRigFactor : public SmartProjectionFactor<CAMERA> {
   }
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION  ///
+#if GTSAM_ENABLE_BOOST_SERIALIZATION  ///
   /// Serialization function
   friend class boost::serialization::access;
   template <class ARCHIVE>

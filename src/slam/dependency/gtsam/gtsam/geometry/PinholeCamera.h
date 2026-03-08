@@ -51,9 +51,7 @@ private:
 
 public:
 
-  enum {
-    dimension = 6 + DimK
-  }; ///< Dimension depends on calibration
+  inline constexpr static auto dimension = 6 + DimK; ///< Dimension depends on calibration
 
   /// @name Standard Constructors
   /// @{
@@ -183,12 +181,10 @@ public:
   /// @name Manifold
   /// @{
 
-  /// @deprecated
   size_t dim() const {
     return dimension;
   }
 
-  /// @deprecated
   static size_t Dim() {
     return dimension;
   }
@@ -201,7 +197,7 @@ public:
       return PinholeCamera(this->pose().retract(d), calibration());
     else
       return PinholeCamera(this->pose().retract(d.head<6>()),
-          calibration().retract(d.tail(calibration().dim())));
+          calibration().retract(d.tail<DimK>()));
   }
 
   /// return canonical coordinate
@@ -326,7 +322,7 @@ public:
 
 private:
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template<class Archive>

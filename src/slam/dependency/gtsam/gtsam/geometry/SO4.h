@@ -53,10 +53,6 @@ SO4 SO4::Expmap(const Vector6 &xi, ChartJacobian H);
 
 template <>
 GTSAM_EXPORT
-Matrix6 SO4::AdjointMap() const;
-
-template <>
-GTSAM_EXPORT
 SO4::VectorN2 SO4::vec(OptionalJacobian<16, 6> H) const;
 
 template <>
@@ -78,7 +74,7 @@ GTSAM_EXPORT Matrix3 topLeft(const SO4 &Q, OptionalJacobian<9, 6> H = {});
  */
 GTSAM_EXPORT Matrix43 stiefel(const SO4 &Q, OptionalJacobian<12, 6> H = {});
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 template <class Archive>
 /** Serialization function */
 void serialize(Archive &ar, SO4 &Q, const unsigned int /*version*/) {
@@ -106,13 +102,13 @@ void serialize(Archive &ar, SO4 &Q, const unsigned int /*version*/) {
 #endif
 
 /*
- * Define the traits. internal::LieGroup provides both Lie group and Testable
+ * Define the traits. internal::MatrixLieGroup provides both Lie group and Testable
  */
 
 template <>
-struct traits<SO4> : public internal::LieGroup<SO4> {};
+struct traits<SO4> : public internal::MatrixLieGroup<SO4, 4> {};
 
 template <>
-struct traits<const SO4> : public internal::LieGroup<SO4> {};
+struct traits<const SO4> : public internal::MatrixLieGroup<SO4, 4> {};
 
 }  // end namespace gtsam

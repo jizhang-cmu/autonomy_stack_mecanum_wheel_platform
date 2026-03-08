@@ -21,14 +21,15 @@
 
 #pragma once
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/serialization/nvp.hpp>
 #endif
-#include <memory>
-
-#include <gtsam/base/types.h>
 #include <gtsam/base/FastVector.h>
+#include <gtsam/base/types.h>
 #include <gtsam/inference/Key.h>
+
+#include <algorithm>
+#include <memory>
 
 namespace gtsam {
 
@@ -192,7 +193,7 @@ namespace gtsam {
     /// @}
 
   private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
     /// @name Serialization
     /// @{
     /** Serialization function */

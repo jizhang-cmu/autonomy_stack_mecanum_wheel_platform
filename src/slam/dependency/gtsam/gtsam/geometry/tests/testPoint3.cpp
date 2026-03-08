@@ -154,6 +154,17 @@ TEST( Point3, cross2) {
   }
 }
 
+/* ************************************************************************* */
+TEST(Point3, doubleCross) {
+  Matrix aH1, aH2;
+  std::function<Point3(const Point3&, const Point3&)> f =
+      [](const Point3& p, const Point3& q) { return doubleCross(p, q); };
+  const Point3 omega(1, 2, 3), theta(4, 5, 6);
+  doubleCross(omega, theta, aH1, aH2);
+  EXPECT(assert_equal(numericalDerivative21(f, omega, theta), aH1));
+  EXPECT(assert_equal(numericalDerivative22(f, omega, theta), aH2));
+}
+
 //*************************************************************************
 TEST (Point3, normalize) {
   Matrix actualH;

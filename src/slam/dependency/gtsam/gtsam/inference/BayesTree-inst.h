@@ -27,6 +27,8 @@
 
 #include <fstream>
 #include <queue>
+#include <cassert>
+#include <unordered_set>
 
 namespace gtsam {
 
@@ -196,21 +198,20 @@ namespace gtsam {
     for (auto&& root: roots_) {
       std::queue<sharedClique> bfs_queue;
       
-      // first, move the root to the queue
-      bfs_queue.push(root);
-      root = nullptr; // now the root node is owned by the queue
+      // first, steal the root and move it to the queue. This invalidates root
+      bfs_queue.push(std::move(root));
 
       // do a BFS on the tree, for each node, add its children to the queue, and then delete it from the queue
       // So if the reference count of the node is 1, it will be deleted, and because its children are in the queue,
       // the deletion of the node will not trigger a recursive deletion of the children.
       while (!bfs_queue.empty()) {
-        // move the ownership of the front node from the queue to the current variable
-        auto current = bfs_queue.front();
+        // move the ownership of the front node from the queue to the current variable, invalidating the sharedClique at the front of the queue
+        auto current = std::move(bfs_queue.front());
         bfs_queue.pop();
 
         // add the children of the current node to the queue, so that the queue will also own the children nodes.
         for (auto child: current->children) {
-          bfs_queue.push(child);
+          bfs_queue.push(std::move(child));
         } // leaving the scope of current will decrease the reference count of the current node by 1, and if the reference count is 0,
           // the node will be deleted. Because the children are in the queue, the deletion of the node will not trigger a recursive
           // deletion of the children.
@@ -336,112 +337,86 @@ namespace gtsam {
   }
 
   /* ************************************************************************* */
-  template<class CLIQUE>
-  typename BayesTree<CLIQUE>::sharedBayesNet
-    BayesTree<CLIQUE>::jointBayesNet(Key j1, Key j2, const Eliminate& function) const
-  {
+  // Find the lowest common ancestor of two cliques
+  // TODO(Varun): consider implementing this as a Range Minimum Query
+  template <class CLIQUE>
+  static std::shared_ptr<CLIQUE> findLowestCommonAncestor(
+      const std::shared_ptr<CLIQUE>& C1, const std::shared_ptr<CLIQUE>& C2) {
+    // Collect all ancestors of C1
+    std::unordered_set<std::shared_ptr<CLIQUE>> ancestors;
+    for (auto p = C1; p; p = p->parent()) {
+      ancestors.insert(p);
+    }
+
+    // Find the first common ancestor in C2's lineage
+    std::shared_ptr<CLIQUE> B;
+    for (auto p = C2; p; p = p->parent()) {
+      if (ancestors.count(p)) {
+      return p;  // Return the common ancestor when found
+      }
+    }
+
+    return nullptr;  // Return nullptr if no common ancestor is found
+  }
+
+  /* ************************************************************************* */
+  // Given the clique P(F:S) and the ancestor clique B
+  // Return the Bayes tree P(S\B | S \cap B), where \cap is intersection
+  template <class CLIQUE>
+  static auto factorInto(
+      const std::shared_ptr<CLIQUE>& p_F_S, const std::shared_ptr<CLIQUE>& B,
+      const typename CLIQUE::FactorGraphType::Eliminate& eliminate) {
+    gttic(Full_root_factoring);
+
+    // Get the shortcut P(S|B)
+    auto p_S_B = p_F_S->shortcut(B, eliminate);
+
+    // Compute S\B
+    KeyVector S_setminus_B = p_F_S->separator_setminus_B(B);
+
+    // Factor P(S|B) into P(S\B|S \cap B) and P(S \cap B)
+    auto [bayesTree, fg] =
+        typename CLIQUE::FactorGraphType(p_S_B).eliminatePartialMultifrontal(
+            Ordering(S_setminus_B), eliminate);
+    return bayesTree;
+  }
+  
+  /* ************************************************************************* */
+  template <class CLIQUE>
+  typename BayesTree<CLIQUE>::sharedBayesNet BayesTree<CLIQUE>::jointBayesNet(
+      Key j1, Key j2, const Eliminate& eliminate) const {
     gttic(BayesTree_jointBayesNet);
     // get clique C1 and C2
     sharedClique C1 = (*this)[j1], C2 = (*this)[j2];
 
-    gttic(Lowest_common_ancestor);
-    // Find lowest common ancestor clique
-    sharedClique B; {
-      // Build two paths to the root
-      FastList<sharedClique> path1, path2; {
-        sharedClique p = C1;
-        while(p) {
-          path1.push_front(p);
-          p = p->parent();
-        }
-      } {
-        sharedClique p = C2;
-        while(p) {
-          path2.push_front(p);
-          p = p->parent();
-        }
-      }
-      // Find the path intersection
-      typename FastList<sharedClique>::const_iterator p1 = path1.begin(), p2 = path2.begin();
-      if(*p1 == *p2)
-        B = *p1;
-      while(p1 != path1.end() && p2 != path2.end() && *p1 == *p2) {
-        B = *p1;
-        ++p1;
-        ++p2;
-      }
-    }
-    gttoc(Lowest_common_ancestor);
+    // Find the lowest common ancestor clique
+    auto B = findLowestCommonAncestor(C1, C2);
 
     // Build joint on all involved variables
     FactorGraphType p_BC1C2;
 
-    if(B)
-    {
+    if (B) {
       // Compute marginal on lowest common ancestor clique
-      gttic(LCA_marginal);
-      FactorGraphType p_B = B->marginal2(function);
-      gttoc(LCA_marginal);
+      FactorGraphType p_B = B->marginal2(eliminate);
 
-      // Compute shortcuts of the requested cliques given the lowest common ancestor
-      gttic(Clique_shortcuts);
-      BayesNetType p_C1_Bred = C1->shortcut(B, function);
-      BayesNetType p_C2_Bred = C2->shortcut(B, function);
-      gttoc(Clique_shortcuts);
+      // Factor the shortcuts to be conditioned on lowest common ancestor
+      auto p_C1_B = factorInto(C1, B, eliminate);
+      auto p_C2_B = factorInto(C2, B, eliminate);
 
-      // Factor the shortcuts to be conditioned on the full root
-      // Get the set of variables to eliminate, which is C1\B.
-      gttic(Full_root_factoring);
-      std::shared_ptr<typename EliminationTraitsType::BayesTreeType> p_C1_B; {
-        KeyVector C1_minus_B; {
-          KeySet C1_minus_B_set(C1->conditional()->beginParents(), C1->conditional()->endParents());
-          for(const Key j: *B->conditional()) {
-            C1_minus_B_set.erase(j); }
-          C1_minus_B.assign(C1_minus_B_set.begin(), C1_minus_B_set.end());
-        }
-        // Factor into C1\B | B.
-        p_C1_B =
-            FactorGraphType(p_C1_Bred)
-                .eliminatePartialMultifrontal(Ordering(C1_minus_B), function)
-                .first;
-      }
-      std::shared_ptr<typename EliminationTraitsType::BayesTreeType> p_C2_B; {
-        KeyVector C2_minus_B; {
-          KeySet C2_minus_B_set(C2->conditional()->beginParents(), C2->conditional()->endParents());
-          for(const Key j: *B->conditional()) {
-            C2_minus_B_set.erase(j); }
-          C2_minus_B.assign(C2_minus_B_set.begin(), C2_minus_B_set.end());
-        }
-        // Factor into C2\B | B.
-        p_C2_B =
-            FactorGraphType(p_C2_Bred)
-                .eliminatePartialMultifrontal(Ordering(C2_minus_B), function)
-                .first;
-      }
-      gttoc(Full_root_factoring);
-
-      gttic(Variable_joint);
       p_BC1C2.push_back(p_B);
       p_BC1C2.push_back(*p_C1_B);
       p_BC1C2.push_back(*p_C2_B);
-      if(C1 != B)
-        p_BC1C2.push_back(C1->conditional());
-      if(C2 != B)
-        p_BC1C2.push_back(C2->conditional());
-      gttoc(Variable_joint);
-    }
-    else
-    {
-      // The nodes have no common ancestor, they're in different trees, so they're joint is just the
-      // product of their marginals.
-      gttic(Disjoint_marginals);
-      p_BC1C2.push_back(C1->marginal2(function));
-      p_BC1C2.push_back(C2->marginal2(function));
-      gttoc(Disjoint_marginals);
+      if (C1 != B) p_BC1C2.push_back(C1->conditional());
+      if (C2 != B) p_BC1C2.push_back(C2->conditional());
+    } else {
+      // The nodes have no common ancestor, they're in different trees, so
+      // they're joint is just the product of their marginals.
+      p_BC1C2.push_back(C1->marginal2(eliminate));
+      p_BC1C2.push_back(C2->marginal2(eliminate));
     }
 
     // now, marginalize out everything that is not variable j1 or j2
-    return p_BC1C2.marginalMultifrontalBayesNet(Ordering{j1, j2}, function);
+    return p_BC1C2.marginalMultifrontalBayesNet(Ordering{j1, j2}, eliminate);
   }
 
   /* ************************************************************************* */

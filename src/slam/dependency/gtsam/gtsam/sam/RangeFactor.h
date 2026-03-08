@@ -80,7 +80,7 @@ class RangeFactor : public ExpressionFactorN<T, A1, A2> {
   }
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   friend class boost::serialization::access;
   template <class ARCHIVE>
   void serialize(ARCHIVE& ar, const unsigned int /*version*/) {
@@ -164,7 +164,7 @@ class RangeFactorWithTransform : public ExpressionFactorN<T, A1, A2> {
   }
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   friend class boost::serialization::access;
   /** Serialization function */
   template <typename ARCHIVE>

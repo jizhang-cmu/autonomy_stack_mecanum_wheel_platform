@@ -1,4 +1,6 @@
-# Quickstart
+# Installation Guide
+
+## Quickstart
 
 In the root library folder execute:
 
@@ -6,17 +8,16 @@ In the root library folder execute:
 $ mkdir build
 $ cd build
 $ cmake ..
-$ make check # (optional, runs unit tests)
-$ make install
+$ cmake --build . --target check # (optional, runs unit tests)
+$ cmake --build . --target install
 ```
 
 ## Important Installation Notes
 
 1. GTSAM requires the following libraries to be installed on your system:
-    - BOOST version 1.65 or greater (install through Linux repositories or MacPorts). Please see [Boost Notes](#boost-notes) for version recommendations based on your compiler.
+    - BOOST version 1.70 or greater (install through Linux repositories or MacPorts). Please see [Boost Notes](#boost-notes) for version recommendations based on your compiler.
 
-    - Cmake version 3.0 or higher
-    - Support for XCode 4.3 command line tools on Mac requires CMake 2.8.8 or higher
+    - CMake version 3.10 or higher
 
     Optional dependent libraries:
      - If TBB is installed and detectable by CMake GTSAM will use it automatically.
@@ -27,7 +28,7 @@ $ make install
        downloaded from https://www.threadingbuildingblocks.org/
      - GTSAM may be configured to use MKL by toggling `GTSAM_WITH_EIGEN_MKL` and
        `GTSAM_WITH_EIGEN_MKL_OPENMP` to `ON`; however, best performance is usually
-       achieved with MKL disabled. We therefore advise you to benchmark your problem 
+       achieved with MKL disabled. We therefore advise you to benchmark your problem
        before using MKL.
 
     Tested compilers:
@@ -60,8 +61,8 @@ execute commands as follows for an out-of-source build:
   $ mkdir build
   $ cd build
   $ cmake ..
-  $ make check (optional, runs unit tests)
-  $ make install
+  $ cmake --build . --target check # (optional, runs unit tests)
+  $ cmake --build . --target install
   ```
 
   This will build the library and unit tests, run all of the unit tests,
@@ -80,12 +81,38 @@ For this reason we recommend Boost>=1.65, and recommend installing it through al
 
 # Windows Installation
 
-This section details how to build a GTSAM `.sln` file using Visual Studio.
+There are two ways to build GTSAM on Windows: the traditional way with Visual Studio and the modern way with CMake + Ninja. The CMake + Ninja way is preferred because the Ninja generator is much faster than Visual Studio.
+
+
+**Important**: Regardless of how you build, GTSAM requires compiling with `/permissive-` and for all projects to also compile with `/permissive-` (due to lots of code being in headers) and sets the list of public compiler flags accordingly. If your project does not currently build with `/permissive-`, make sure it does and fix whatever is needed to make it work. Failure to compile with `/permissive-` can cause various runtime or build errors.
 
 ### Prerequisites
 
-- Visual Studio with C++ CMake tools for Windows
+- Visual Studio with Desktop development with C++
+  - You need MSVC and the Windows SDK to build GTSAM.
+  - This also includes the C++ CMake tools for Windows component, which includes Ninja and CMake.
+  - CMake >= 3.21 is required for Visual Studio installation because custom templates used in the build were added in 3.21. Use `cmake --version` in the VS Developer Command Prompt to ensure you meet this requirement.
 - All the other pre-requisites listed above.
+
+## Building with CMake and Ninja
+
+This section details how to use CMake with the Ninja generator. You must be in a Developer shell for this to work.
+
+In the root library folder execute:
+
+```powershell
+$ mkdir build
+$ cd build
+$ cmake .. -G Ninja
+$ cmake --build . --target check # (optional, runs unit tests)
+$ cmake --build . --target install
+```
+
+Note: if you are used to using the Visual Studio generators, you do not need to pass --config here for Ninja. This is because the Visual Studio generator is a multi-config generator, so you need --config to select the build type. Ninja is not a multi-config generator, so you just need to set CMAKE_BUILD_TYPE when configuring and it will use that build type to compile. If you want the multi-config behavior, try using `-G Ninja Multi-Config`.
+
+## Building with Visual Studio
+
+This section details how to build a GTSAM `.sln` file using Visual Studio.
 
 ### Steps
 
@@ -97,12 +124,32 @@ This section details how to build a GTSAM `.sln` file using Visual Studio.
   - Set the `Toolset` to `msvc_x64_x64`. If you know what toolset you require, then skip this step.
   - Update the `Build root` to `${projectDir}\build\${name}`.
   - You can optionally create a new configuration for a `Release` build.
-  - Set the necessary CMake variables for your use case.
+  - Set the necessary CMake variables for your use case. If you are not using Boost, uncheck `GTSAM_ENABLE_BOOST_SERIALIZATION` and `GTSAM_USE_BOOST_FEATURES`. 
   - Click on `Show advanced settings`.
-  - For `CMake generator`, select a version which matches `Visual Studio <Version> <Year> Win64`, e.g. `Visual Studio 16 2019 Win64`.
+  - For `CMake generator`, select a version which matches `Visual Studio <Version> <Year> Win64`, e.g. `Visual Studio 17 2022 Win64`.
   - Save the settings (Ctrl + S).
-4. Click on `Project -> Generate Cache`. This will generate the CMake build files (as seen in the Output window).
+4. Saving the CMake settings should automatically generate the cache. Otherwise, click on `Project -> Configure Cache`. This will generate the CMake build files (as seen in the Output window).
+  - If generating the cache yields `CMake Error ... (ADD_CUSTOM_COMMAND)` errors, you have an old CMake. Verify that your CMake is >= 3.21. If Visual Studio says that it is but you're still getting the error, install the latest CMake (tested with 3.31.4) and point to its executable in `CMakeSettings > Advanced settings > CMake executable`.
 5. The last step will generate a `GTSAM.sln` file in the `build` directory. At this point, GTSAM can be used as a regular Visual Studio project.
+
+### Python Installation
+
+To install the Python bindings on Windows:
+
+Install [pyparsing(>=2.4.2)](https://github.com/pyparsing/pyparsing), [pybind-stubgen>=2.5.1](https://github.com/sizmailov/pybind11-stubgen) and [numpy(>=1.11.0)](https://numpy.org/) with the Python environment you wish to develop in. These can all be installed as follows:
+
+  ```bash
+  pip install -r <gtsam_folder>/python/dev_requirements.txt
+  ```
+
+1. Follow the above steps for GTSAM general installation.
+  - In the CMake settings variables, set `GTSAM_BUILD_PYTHON` to be true and specify the path to your desired Python environment executable in the "CMake command arguments" field using `-DPYTHON_EXECUTABLE="<path to your python.exe>"`
+  - Once the cache is generated, ensure it's using your desired Python executable and the version is correct. It may cause errors later otherwise, such as missing Python packages required to build. If the version is not the one you specified in `DPYTHON_EXECUTABLE`, change the version in all 3 Python version specifiers in the CMake variables (`GTSAM_PYTHON_VERSION`, `PYBIND11_PYTHON_VERSION`, `WRAP_PYTHON_VERSION`) to the exact version of your desired executable. CMake might look for executables in the standard locations first, so ensure it's using the one you want before continuing.
+2. Build the project (Build > Build All).
+  - If you encounter the error `C1083	Cannot open include file: 'boost/serialization/export.hpp': No such file or directory`, you need to make changes to the template files that include Boost since your build is not using Boost. Locate `python/gtsam/gtsam.tpl` (and `python/gtsam_unstable/gtsam_unstable.tpl` if you are building unstable) and comment out the line `#include <boost/serialization/export.hpp>` near the top of each. Delete the generated build directory (e.g. if you made `build/x64-Debug`, delete the `x64-Debug` folder), regenerate the cache, and build again.
+  - If you encounter an error involving copying `.pyd` files, find the files mentioned (`gtsam_py.pyd` and `gtsam_unstable_py.pyd`, probably in the `Debug`/`Release`/etc. folder inside `build/<your build>/python/gtsam`) and copy them to where they are supposed to be (the source of the copy error, probably `build/<your build>/python/gtsam`) then rebuild.
+3. At this point, `gtsam` in `build/<your build>/python` is available to be used as a Python package. You can use `pip install .` in that directory to install the package.
+
 
 
 # CMake Configuration Options and Details
@@ -128,12 +175,12 @@ We support several build configurations for GTSAM (case insensitive)
 
 #### CMAKE_INSTALL_PREFIX
 
-The install folder. The default is typically `/usr/local/`. 
+The install folder. The default is typically `/usr/local/`.
 To configure to install to your home directory, you could execute:
 
 ```cmake -DCMAKE_INSTALL_PREFIX:PATH=$HOME ..```
 
-#### GTSAM_TOOLBOX_INSTALL_PATH 
+#### GTSAM_TOOLBOX_INSTALL_PATH
 
 The Matlab toolbox will be installed in a subdirectory
 of this folder, called 'gtsam'.
@@ -142,7 +189,7 @@ of this folder, called 'gtsam'.
 
 #### GTSAM_BUILD_CONVENIENCE_LIBRARIES
 
-This is a build option to allow for tests in subfolders to be linked against convenience libraries rather than the full libgtsam. 
+This is a build option to allow for tests in subfolders to be linked against convenience libraries rather than the full libgtsam.
 Set with the command line as follows:
 
 ```cmake -DGTSAM_BUILD_CONVENIENCE_LIBRARIES:OPTION=ON ..```
@@ -158,6 +205,16 @@ Set with the command line as follows:
 
   ON:             When enabled, libgtsam_unstable will be built and installed with the same options as libgtsam.  In addition, if tests are enabled, the unit tests will be built as well.  The Matlab toolbox will also be generated if the matlab toolbox is enabled, installing into a folder called `gtsam_unstable`.
   OFF (Default)  If disabled, no `gtsam_unstable` code will be included in build or install.
+
+## Convenience Options:
+
+#### GTSAM_BUILD_EXAMPLES_ALWAYS
+
+Whether or not to force building examples, can be true or false.
+
+#### GTSAM_BUILD_TESTS
+
+Whether or not to build tests, can be true or false.
 
 ## Check
 
@@ -179,7 +236,7 @@ Here are some tips to get the best possible performance out of GTSAM.
 
 1. Build in `Release` mode. GTSAM will run up to 10x faster compared to `Debug` mode.
 2. Enable TBB. On modern processors with multiple cores, this can easily speed up
-    optimization by 30-50%. Please note that this may not be true for very small 
+    optimization by 30-50%. Please note that this may not be true for very small
     problems where the overhead of dispatching work to multiple threads outweighs
     the benefit. We recommend that you benchmark your problem with/without TBB.
 3. Use `GTSAM_BUILD_WITH_MARCH_NATIVE`. A performance gain of
@@ -228,3 +285,88 @@ or
 when importing GTSAM using the python wrapper.
 
 
+## Compile gtsam with vcpkg. (For linux/wsl)
+Install python dependencies + ninja + build essential in linux:   
+```
+sudo apt update
+sudo apt-get install autoconf automake autoconf-archive ninja-build build-essential -y
+```
+
+On your home dir near gtsam dir:   
+Setup vcpkg   
+```bash
+git clone https://github.com/microsoft/vcpkg
+cd vcpkg
+./bootstrap-vcpkg.sh
+```
+
+vcpkg install dependencies   
+on vcpkg dir:   
+```bash
+./vcpkg x-set-installed         \
+          boost-assign          \
+          boost-bimap           \
+          boost-chrono          \
+          boost-date-time       \
+          boost-filesystem      \
+          boost-format          \
+          boost-graph           \
+          boost-math            \
+          boost-program-options \
+          boost-regex           \
+          boost-serialization   \
+          boost-system          \
+          boost-thread          \
+          boost-timer           \
+          tbb                   \
+          pybind11
+```
+
+Setup python dependencies   
+Go to your gtsam folder `cd gtsam`:   
+```bash
+../vcpkg/installed/x64-linux/tools/python3/python3 -m ensurepip --upgrade
+../vcpkg/installed/x64-linux/tools/python3/python3 -m pip install -r python/dev_requirements.txt
+```
+
+Cmake config:   
+In gtsam folder   
+```bash
+cmake . -B build -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE=../scripts/buildsystems/vcpkg.cmake \
+    -DVCPKG_INSTALLED_DIR=../installed \
+    -DVCPKG_TARGET_TRIPLET=x64-linux \
+    -DVCPKG_HOST_TRIPLET=x64-linux \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DGTSAM_BUILD_EXAMPLES_ALWAYS=ON \
+    -DGTSAM_ROT3_EXPMAP=ON \
+    -DGTSAM_POSE3_EXPMAP=ON \
+    -DGTSAM_BUILD_PYTHON=ON \
+    -DGTSAM_BUILD_TESTS=ON \
+    -DGTSAM_BUILD_UNSTABLE=ON \
+    -DGTSAM_ALLOW_DEPRECATED_SINCE_V43=OFF \
+    -DGTSAM_USE_SYSTEM_EIGEN=OFF \
+    -DGTSAM_USE_SYSTEM_METIS=OFF \
+    -DGTSAM_USE_SYSTEM_PYBIND=ON \
+    -DGTSAM_SUPPORT_NESTED_DISSECTION=ON
+```
+
+cmake compile:   
+In gtsam folder:   
+```bash
+cmake --build build
+```
+
+Run python tests:   
+```
+VCPKG_INSTALLATION_ROOT=<abs path to vcpkg root dir>
+export PATH="$PATH:$VCPKG_INSTALLATION_ROOT/installed/x64-linux/bin"
+cmake --build build --target python-install
+cmake --build build --target python-test
+cmake --build build --target python-test-unstable
+```
+
+Run gtsam tests:   
+```bash
+cmake --build build --target check
+```

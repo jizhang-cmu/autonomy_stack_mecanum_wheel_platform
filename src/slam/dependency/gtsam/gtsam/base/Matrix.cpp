@@ -24,6 +24,7 @@
 #include <Eigen/LU>
 
 #include <cstdarg>
+#include <cassert>
 #include <cstring>
 #include <iomanip>
 #include <list>
@@ -125,17 +126,6 @@ bool linear_dependent(const Matrix& A, const Matrix& B, double tol) {
 }
 
 /* ************************************************************************* */
-Vector operator^(const Matrix& A, const Vector & v) {
-  if (A.rows()!=v.size()) {
-    throw std::invalid_argument("Matrix operator^ : A.m(" + std::to_string(A.rows()) + ")!=v.size(" +
-                                std::to_string(v.size()) + ")");
-  }
-//  Vector vt = v.transpose();
-//  Vector vtA = vt * A;
-//  return vtA.transpose();
-  return A.transpose() * v;
-}
-
 const Eigen::IOFormat& matlabFormat() {
   static const Eigen::IOFormat matlab(
     Eigen::StreamPrecision, // precision
@@ -649,7 +639,7 @@ void inplace_QR(Matrix& A){
   Eigen::internal::householder_qr_inplace_blocked<Matrix, HCoeffsType>::run(A, hCoeffs, 48, temp.data());
 #endif
 
-  zeroBelowDiagonal(A);
+  A.triangularView<Eigen::StrictlyLower>().setZero();
 }
 
 } // namespace gtsam

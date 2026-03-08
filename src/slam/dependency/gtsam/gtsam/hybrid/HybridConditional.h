@@ -13,13 +13,14 @@
  *  @file HybridConditional.h
  *  @date Mar 11, 2022
  *  @author Fan Jiang
+ *  @author Varun Agrawal
  */
 
 #pragma once
 
 #include <gtsam/discrete/DiscreteConditional.h>
-#include <gtsam/hybrid/GaussianMixture.h>
 #include <gtsam/hybrid/HybridFactor.h>
+#include <gtsam/hybrid/HybridGaussianConditional.h>
 #include <gtsam/hybrid/HybridGaussianFactorGraph.h>
 #include <gtsam/inference/Conditional.h>
 #include <gtsam/inference/Key.h>
@@ -39,7 +40,7 @@ namespace gtsam {
  * As a type-erased variant of:
  * - DiscreteConditional
  * - GaussianConditional
- * - GaussianMixture
+ * - HybridGaussianConditional
  *
  * The reason why this is important is that `Conditional<T>` is a CRTP class.
  * CRTP is static polymorphism such that all CRTP classes, while bearing the
@@ -61,7 +62,7 @@ class GTSAM_EXPORT HybridConditional
       public Conditional<HybridFactor, HybridConditional> {
  public:
   // typedefs needed to play nice with gtsam
-  typedef HybridConditional This;              ///< Typedef to this class
+  typedef HybridConditional This;            ///< Typedef to this class
   typedef std::shared_ptr<This> shared_ptr;  ///< shared_ptr to this class
   typedef HybridFactor BaseFactor;  ///< Typedef to our factor base class
   typedef Conditional<BaseFactor, This>
@@ -124,10 +125,11 @@ class GTSAM_EXPORT HybridConditional
   /**
    * @brief Construct a new Hybrid Conditional object
    *
-   * @param gaussianMixture Gaussian Mixture Conditional used to create the
+   * @param hybridGaussianCond Hybrid Gaussian Conditional used to create the
    * HybridConditional.
    */
-  HybridConditional(const std::shared_ptr<GaussianMixture>& gaussianMixture);
+  HybridConditional(
+      const std::shared_ptr<HybridGaussianConditional>& hybridGaussianCond);
 
   /// @}
   /// @name Testable
@@ -146,12 +148,13 @@ class GTSAM_EXPORT HybridConditional
   /// @{
 
   /**
-   * @brief Return HybridConditional as a GaussianMixture
-   * @return nullptr if not a mixture
-   * @return GaussianMixture::shared_ptr otherwise
+   * @brief Return HybridConditional as a HybridGaussianConditional
+   * @return nullptr if not a conditional
+   * @return HybridGaussianConditional::shared_ptr otherwise
    */
-  GaussianMixture::shared_ptr asMixture() const {
-    return std::dynamic_pointer_cast<GaussianMixture>(inner_);
+  HybridGaussianConditional::shared_ptr asHybrid() const {
+    if (!isHybrid()) return nullptr;
+    return std::static_pointer_cast<HybridGaussianConditional>(inner_);
   }
 
   /**
@@ -160,33 +163,47 @@ class GTSAM_EXPORT HybridConditional
    * @return GaussianConditional::shared_ptr otherwise
    */
   GaussianConditional::shared_ptr asGaussian() const {
-    return std::dynamic_pointer_cast<GaussianConditional>(inner_);
+    if (!isContinuous()) return nullptr;
+    return std::static_pointer_cast<GaussianConditional>(inner_);
   }
 
   /**
-   * @brief Return conditional as a DiscreteConditional
+   * @brief Return conditional as a DiscreteConditional or specified type T.
    * @return nullptr if not a DiscreteConditional
    * @return DiscreteConditional::shared_ptr
    */
-  DiscreteConditional::shared_ptr asDiscrete() const {
-    return std::dynamic_pointer_cast<DiscreteConditional>(inner_);
+  template <typename T = DiscreteConditional>
+  typename T::shared_ptr asDiscrete() const {
+    if (!isDiscrete()) return nullptr;
+    return std::static_pointer_cast<T>(inner_);
   }
 
   /// Get the type-erased pointer to the inner type
   std::shared_ptr<Factor> inner() const { return inner_; }
 
   /// Return the error of the underlying conditional.
-  double error(const HybridValues& values) const override;
+  double error(const HybridValues& hybridValues) const override;
+
+  /**
+   * @brief Compute error of the HybridConditional as a tree.
+   *
+   * @param continuousValues The continuous VectorValues.
+   * @return AlgebraicDecisionTree<Key> A decision tree with the same keys
+   * as the conditionals involved, and leaf values as the error.
+   */
+  AlgebraicDecisionTree<Key> errorTree(
+      const VectorValues& continuousValues) const override;
 
   /// Return the log-probability (or density) of the underlying conditional.
   double logProbability(const HybridValues& values) const override;
 
   /**
-   * Return the log normalization constant.
+   * Return the negative log of the normalization constant.
+   * This shows up in the error as -(error(x) + negLogConstant)
    * Note this is 0.0 for discrete and hybrid conditionals, but depends
    * on the continuous parameters for Gaussian conditionals.
-   */ 
-  double logNormalizationConstant() const override;
+   */
+  double negLogConstant() const override;
 
   /// Return the probability (or density) of the underlying conditional.
   double evaluate(const HybridValues& values) const override;
@@ -201,10 +218,19 @@ class GTSAM_EXPORT HybridConditional
     return true;
   }
 
+  /**
+   * Return a HybridConditional by choosing branches based on the given discrete
+   * values. If all discrete parents are specified, return a HybridConditional
+   * which is just a GaussianConditional. If this conditional is *not* a hybrid
+   * conditional, just return that.
+   */
+  std::shared_ptr<Factor> restrict(
+      const DiscreteValues& assignment) const override;
+
   /// @}
 
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template <class Archive>
@@ -222,8 +248,10 @@ class GTSAM_EXPORT HybridConditional
       boost::serialization::void_cast_register<GaussianConditional, Factor>(
           static_cast<GaussianConditional*>(NULL), static_cast<Factor*>(NULL));
     } else {
-      boost::serialization::void_cast_register<GaussianMixture, Factor>(
-          static_cast<GaussianMixture*>(NULL), static_cast<Factor*>(NULL));
+      boost::serialization::void_cast_register<HybridGaussianConditional,
+                                               Factor>(
+          static_cast<HybridGaussianConditional*>(NULL),
+          static_cast<Factor*>(NULL));
     }
   }
 #endif

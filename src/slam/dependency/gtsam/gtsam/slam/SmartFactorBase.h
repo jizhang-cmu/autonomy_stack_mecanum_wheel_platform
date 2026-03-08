@@ -30,7 +30,7 @@
 #include <gtsam/geometry/CameraSet.h>
 
 #include <optional>
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/serialization/optional.hpp>
 #endif
 #include <vector>
@@ -135,7 +135,11 @@ protected:
 
   /// Add a bunch of measurements, together with the camera keys.
   void add(const ZVector& measurements, const KeyVector& cameraKeys) {
-    assert(measurements.size() == cameraKeys.size());
+#ifndef NDEBUG
+    if (measurements.size() != cameraKeys.size()) {
+      throw std::runtime_error("Number of measurements and camera keys do not match");
+    }
+#endif
     for (size_t i = 0; i < measurements.size(); i++) {
       this->add(measurements[i], cameraKeys[i]);
     }
@@ -446,7 +450,7 @@ protected:
 
 private:
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION///
+#if GTSAM_ENABLE_BOOST_SERIALIZATION///
 /// Serialization function
   friend class boost::serialization::access;
   template<class ARCHIVE>

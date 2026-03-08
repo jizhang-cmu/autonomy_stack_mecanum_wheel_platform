@@ -35,9 +35,9 @@ public:
   }
 
   /// Copy constructor
-  Mechanization_bRn2(const Mechanization_bRn2& other) :
-      bRn_(other.bRn_), x_g_(other.x_g_), x_a_(other.x_a_) {
-  }
+  Mechanization_bRn2(const Mechanization_bRn2& other) = default;
+
+  Mechanization_bRn2& operator=(const Mechanization_bRn2& other) = default;
 
   /// gravity in the body frame
   Vector3 b_g(double g_e) const {

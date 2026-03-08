@@ -4,10 +4,12 @@ option(GTSAM_BUILD_DOCS                  "Enable/Disable building of doxygen doc
 # configure doxygen
 option(GTSAM_BUILD_DOC_HTML              "Enable/Disable doxygen HTML output"    ON)
 option(GTSAM_BUILD_DOC_LATEX             "Enable/Disable doxygen LaTeX output"   OFF)
+option(GTSAM_GENERATE_DOC_XML            "Enable/Disable doxygen XML output"     OFF)
 
 # add a target to generate API documentation with Doxygen
 if (GTSAM_BUILD_DOCS)
-    # Convert configuration to YES/NO variables
+    # The following if statements convert ON/OFF CMake flags to YES/NO variables
+    # since Doxygen expects YES/NO for boolean options.
     if (GTSAM_BUILD_DOC_HTML)
         set(GTSAM_BUILD_DOC_HTML_YN "YES")
     else() 
@@ -18,6 +20,12 @@ if (GTSAM_BUILD_DOCS)
         set(GTSAM_BUILD_DOC_LATEX_YN "YES")
     else() 
         set(GTSAM_BUILD_DOC_LATEX_YN "NO")
+    endif()
+
+    if (GTSAM_GENERATE_DOC_XML)
+        set(GTSAM_GENERATE_XML_YN "YES")
+    else() 
+        set(GTSAM_GENERATE_XML_YN "NO")
     endif()
 
     # GTSAM core subfolders

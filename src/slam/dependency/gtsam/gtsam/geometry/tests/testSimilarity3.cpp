@@ -56,7 +56,7 @@ const double degree = M_PI / 180;
 TEST(Similarity3, Concepts) {
   GTSAM_CONCEPT_ASSERT(IsGroup<Similarity3 >);
   GTSAM_CONCEPT_ASSERT(IsManifold<Similarity3 >);
-  GTSAM_CONCEPT_ASSERT(IsLieGroup<Similarity3 >);
+  GTSAM_CONCEPT_ASSERT(IsMatrixLieGroup<Similarity3 >);
 }
 
 //******************************************************************************
@@ -80,15 +80,33 @@ TEST(Similarity3, Getters) {
   EXPECT_DOUBLES_EQUAL(7.0, sim3.scale(), 1e-9);
 }
 
-//******************************************************************************
-TEST(Similarity3, AdjointMap) {
-  const Matrix4 T = T2.matrix();
-  // Check Ad with actual definition
-  Vector7 delta;
-  delta << 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7;
-  Matrix4 W = Similarity3::wedge(delta);
-  Matrix4 TW = Similarity3::wedge(T2.AdjointMap() * delta);
-  EXPECT(assert_equal(TW, Matrix4(T * W * T.inverse()), 1e-9));
+/* ************************************************************************* */
+TEST(Similarity3, HatAndVee) {
+  // Create a few test vectors
+  Vector7 v1(1, 2, 3, 4, 5, 6, 7);
+  Vector7 v2(0.1, -0.5, 1.0, -1.0, 0.5, 2.0, -0.3);
+  Vector7 v3(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+  // Test that Vee(Hat(v)) == v for various inputs
+  EXPECT(assert_equal(v1, Similarity3::Vee(Similarity3::Hat(v1))));
+  EXPECT(assert_equal(v2, Similarity3::Vee(Similarity3::Hat(v2))));
+  EXPECT(assert_equal(v3, Similarity3::Vee(Similarity3::Hat(v3))));
+
+  // Check the structure of the Lie Algebra element
+  Matrix4 expected;
+  expected << 0, -3, 2, 4,
+              3, 0, -1, 5,
+              -2, 1, 0, 6,
+              0, 0, 0, -7;
+
+  EXPECT(assert_equal(expected, Similarity3::Hat(v1)));
+}
+
+/* ************************************************************************* */
+// Checks correct exponential map (Expmap) with brute force matrix exponential
+TEST(Similarity3, BruteForceExpmap) {
+  const Vector7 xi(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7);
+  EXPECT(assert_equal(Similarity3::Expmap(xi), expm<Similarity3>(xi), 1e-4));
 }
 
 //******************************************************************************
@@ -105,6 +123,19 @@ TEST(Similarity3, inverse) {
   Matrix H1, H2;
   EXPECT(assert_equal(expected, sim3.inverse(H1), 1e-4));
   EXPECT(assert_equal(sim3, sim3.inverse().inverse(H2), 1e-8));
+}
+
+//******************************************************************************
+TEST(Similarity3, InverseMatrix) {
+  Rot3 R = Rot3::Rodrigues(0.3, 0.2, 0.1);
+  Point3 t(3.5, -8.2, 4.2);
+  double s = 1.5;
+  Similarity3 S(R, t, s);
+
+  Matrix4 S_inv_mat = S.inverse().matrix();
+  Matrix4 S_mat_inv = S.matrix().inverse();
+
+  EXPECT(assert_equal(S_inv_mat, S_mat_inv));
 }
 
 //******************************************************************************
@@ -209,10 +240,6 @@ TEST(Similarity3, ExpLogMap) {
   Similarity3 expZero = Similarity3::Expmap(zeros);
   Similarity3 ident = Similarity3::Identity();
   EXPECT(assert_equal(expZero, ident));
-
-  // Compare to matrix exponential, using expm in Lie.h
-  EXPECT(
-      assert_equal(expm<Similarity3>(delta), Similarity3::Expmap(delta), 1e-3));
 }
 
 //******************************************************************************
@@ -525,6 +552,49 @@ TEST(Similarity3 , LieGroupDerivatives) {
   CHECK_LIE_GROUP_DERIVATIVES(id, T2);
   CHECK_LIE_GROUP_DERIVATIVES(T2, id);
   CHECK_LIE_GROUP_DERIVATIVES(T2, T3);
+}
+
+//******************************************************************************
+TEST(Similarity3, Vec) {
+  const Rot3 R_test = Rot3::Rodrigues(0.1, 0.2, 0.3);
+  const Point3 t_test(0.4, 0.5, 0.6);
+  const double s_test = 0.7;
+  const Similarity3 sim(R_test, t_test, s_test);
+
+  // 1. Test the Value
+  Similarity3::Vector16 expected_vec;
+  const Matrix3 R = R_test.matrix();
+  expected_vec << R.col(0), 0.0, R.col(1), 0.0, R.col(2), 0.0, t_test.x(),
+    t_test.y(), t_test.z(), 1.0 / s_test;
+  Similarity3::Vector16 actual_vec = sim.vec();
+  EXPECT(assert_equal(expected_vec, actual_vec, 1e-9));
+
+  // 2. Test the Jacobian
+  Matrix H_actual(16, 7);
+  sim.vec(H_actual);
+  auto vec_fun = [](const Similarity3& sim_arg) -> Similarity3::Vector16 {
+    return sim_arg.vec();
+    };
+  Matrix H_numerical = numericalDerivative11<Similarity3::Vector16, Similarity3, 7>(vec_fun, sim);
+  EXPECT(assert_equal(H_numerical, H_actual, 1e-7));
+}
+
+//******************************************************************************
+TEST(Similarity3, AdjointMap) {
+  // Create a non-trivial Similarity3 object
+  const Rot3 R = Rot3::Rodrigues(0.3, 0.2, 0.1);
+  const Point3 t(3.5, -8.2, 4.2);
+  const double s = 1.0;
+  const Similarity3 sim(R, t, s);
+
+  // Call the specialized AdjointMap
+  Matrix7 specialized_Adj = sim.AdjointMap();
+
+  // Call the generic AdjointMap from the base class
+  Matrix7 generic_Adj = static_cast<const MatrixLieGroup<Similarity3, 7, 4>*>(&sim)->AdjointMap();
+
+  // Assert that they are equal
+  EXPECT(assert_equal(specialized_Adj, generic_Adj, 1e-9));
 }
 
 //******************************************************************************

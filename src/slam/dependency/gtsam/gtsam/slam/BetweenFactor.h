@@ -135,7 +135,7 @@ namespace gtsam {
 
   private:
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
     /** Serialization function */
     friend class boost::serialization::access;
     template<class ARCHIVE>
@@ -147,10 +147,10 @@ namespace gtsam {
     }
 #endif
 
-	  // Alignment, see https://eigen.tuxfamily.org/dox/group__TopicStructHavingEigenMembers.html
-	  enum { NeedsToAlign = (sizeof(VALUE) % 16) == 0 };
-    public:
-      GTSAM_MAKE_ALIGNED_OPERATOR_NEW_IF(NeedsToAlign)
+    // Alignment, see https://eigen.tuxfamily.org/dox/group__TopicStructHavingEigenMembers.html
+    inline constexpr static auto NeedsToAlign = (sizeof(VALUE) % 16) == 0;
+  public:
+    GTSAM_MAKE_ALIGNED_OPERATOR_NEW_IF(NeedsToAlign)
   }; // \class BetweenFactor
 
   /// traits
@@ -176,7 +176,7 @@ namespace gtsam {
   private:
 
     /** Serialization function */
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
     friend class boost::serialization::access;
     template<class ARCHIVE>
     void serialize(ARCHIVE & ar, const unsigned int /*version*/) {

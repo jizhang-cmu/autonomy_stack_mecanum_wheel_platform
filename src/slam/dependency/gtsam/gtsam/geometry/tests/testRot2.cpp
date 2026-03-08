@@ -23,7 +23,7 @@
 using namespace gtsam;
 
 GTSAM_CONCEPT_TESTABLE_INST(Rot2)
-GTSAM_CONCEPT_LIE_INST(Rot2)
+GTSAM_CONCEPT_MATRIX_LIE_GROUP_INST(Rot2)
 
 Rot2 R(Rot2::fromAngle(0.1));
 Point2 P(0.2, 0.7);
@@ -104,6 +104,25 @@ TEST(Rot2, logmap)
 }
 
 /* ************************************************************************* */
+TEST(Rot2, HatAndVee) {
+  // Create a few test vectors
+  Vector1 v1 = (Vector1() << 1).finished();
+  Vector1 v2 = (Vector1() << 0.1).finished();
+  Vector1 v3 = (Vector1() << 0.0).finished();
+
+  // Test that Vee(Hat(v)) == v for various inputs
+  EXPECT(assert_equal(v1, Rot2::Vee(Rot2::Hat(v1))));
+  EXPECT(assert_equal(v2, Rot2::Vee(Rot2::Hat(v2))));
+  EXPECT(assert_equal(v3, Rot2::Vee(Rot2::Hat(v3))));
+
+  // Check the structure of the Lie Algebra element
+  Matrix2 expected;
+  expected << 0., -1., 1., 0.;
+
+  EXPECT(assert_equal(expected, Rot2::Hat(v1)));
+}
+
+/* ************************************************************************* */
 // rotate and derivatives
 inline Point2 rotate_(const Rot2 & R, const Point2& p) {return R.rotate(p);}
 TEST( Rot2, rotate)
@@ -153,6 +172,20 @@ TEST( Rot2, relativeBearing )
   // Check numerical derivative
   expectedH = numericalDerivative11(relativeBearing_, l2);
   CHECK(assert_equal(expectedH,actualH));
+}
+
+/* ************************************************************************* */
+TEST(Rot2, vec) {
+  // Test the 'vec' method
+  Vector4 expected_vec = Eigen::Map<Vector4>(R.matrix().data());
+  Matrix41 actualH;
+  Vector4 actual_vec = R.vec(actualH);
+  EXPECT(assert_equal(expected_vec, actual_vec));
+
+  // Verify Jacobian with numerical derivatives
+  std::function<Vector4(const Rot2&)> f = [](const Rot2& p) { return p.vec(); };
+  Matrix41 numericalH = numericalDerivative11<Vector4, Rot2>(f, R);
+  EXPECT(assert_equal(numericalH, actualH, 1e-9));
 }
 
 //******************************************************************************

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import multiprocessing
 import sys
+import sysconfig
 import threading
 import time
 
@@ -7,6 +10,14 @@ import pytest
 
 import env
 from pybind11_tests import gil_scoped as m
+
+# Test collection seems to hold the gil
+# These tests have rare flakes in nogil; since they
+# are testing the gil, they are skipped at the moment.
+skipif_not_free_threaded = pytest.mark.skipif(
+    sysconfig.get_config_var("Py_GIL_DISABLED"),
+    reason="Flaky without the GIL",
+)
 
 
 class ExtendedVirtClass(m.VirtClass):
@@ -69,24 +80,28 @@ def test_cross_module_gil_inner_pybind11_acquired():
     m.test_cross_module_gil_inner_pybind11_acquired()
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_cross_module_gil_nested_custom_released():
     """Makes sure that the GIL can be nested acquired/released by another module
     from a GIL-released state using custom locking logic."""
     m.test_cross_module_gil_nested_custom_released()
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_cross_module_gil_nested_custom_acquired():
     """Makes sure that the GIL can be nested acquired/acquired by another module
     from a GIL-acquired state using custom locking logic."""
     m.test_cross_module_gil_nested_custom_acquired()
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_cross_module_gil_nested_pybind11_released():
     """Makes sure that the GIL can be nested acquired/released by another module
     from a GIL-released state using pybind11 locking logic."""
     m.test_cross_module_gil_nested_pybind11_released()
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 def test_cross_module_gil_nested_pybind11_acquired():
     """Makes sure that the GIL can be nested acquired/acquired by another module
     from a GIL-acquired state using pybind11 locking logic."""
@@ -101,6 +116,11 @@ def test_nested_acquire():
     assert m.test_nested_acquire(0xAB) == "171"
 
 
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.skipif(
+    env.GRAALPY and sys.platform == "darwin",
+    reason="Transiently crashes on GraalPy on OS X",
+)
 def test_multi_acquire_release_cross_module():
     for bits in range(16 * 8):
         internals_ids = m.test_multi_acquire_release_cross_module(bits)
@@ -144,7 +164,7 @@ def _intentional_deadlock():
     m.intentional_deadlock()
 
 
-ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = ALL_BASIC_TESTS + (_intentional_deadlock,)
+ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK = (*ALL_BASIC_TESTS, _intentional_deadlock)
 
 
 def _run_in_process(target, *args, **kwargs):
@@ -202,8 +222,12 @@ def _run_in_threads(test_fn, num_threads, parallel):
         thread.join()
 
 
-# TODO: FIXME, sometimes returns -11 (segfault) instead of 0 on macOS Python 3.9
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.skipif(
+    "env.GRAALPY",
+    reason="GraalPy transiently complains about unfinished threads at process exit",
+)
 def test_run_in_process_one_thread(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread.
 
@@ -212,8 +236,13 @@ def test_run_in_process_one_thread(test_fn):
     assert _run_in_process(_run_in_threads, test_fn, num_threads=1, parallel=False) == 0
 
 
-# TODO: FIXME on macOS Python 3.9
+@skipif_not_free_threaded
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.skipif(
+    "env.GRAALPY",
+    reason="GraalPy transiently complains about unfinished threads at process exit",
+)
 def test_run_in_process_multiple_threads_parallel(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times in parallel.
 
@@ -222,8 +251,12 @@ def test_run_in_process_multiple_threads_parallel(test_fn):
     assert _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=True) == 0
 
 
-# TODO: FIXME on macOS Python 3.9
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
 @pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.skipif(
+    "env.GRAALPY",
+    reason="GraalPy transiently complains about unfinished threads at process exit",
+)
 def test_run_in_process_multiple_threads_sequential(test_fn):
     """Makes sure there is no GIL deadlock when running in a thread multiple times sequentially.
 
@@ -232,8 +265,18 @@ def test_run_in_process_multiple_threads_sequential(test_fn):
     assert _run_in_process(_run_in_threads, test_fn, num_threads=8, parallel=False) == 0
 
 
-# TODO: FIXME on macOS Python 3.9
-@pytest.mark.parametrize("test_fn", ALL_BASIC_TESTS_PLUS_INTENTIONAL_DEADLOCK)
+@pytest.mark.skipif(sys.platform.startswith("emscripten"), reason="Requires threads")
+@pytest.mark.parametrize(
+    "test_fn",
+    [
+        *ALL_BASIC_TESTS,
+        pytest.param(_intentional_deadlock, marks=skipif_not_free_threaded),
+    ],
+)
+@pytest.mark.skipif(
+    "env.GRAALPY",
+    reason="GraalPy transiently complains about unfinished threads at process exit",
+)
 def test_run_in_process_direct(test_fn):
     """Makes sure there is no GIL deadlock when using processes.
 

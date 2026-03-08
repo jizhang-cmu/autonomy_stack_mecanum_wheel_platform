@@ -104,14 +104,16 @@ namespace gtsam {
   }
 
   /* ************************************************************************* */
-  // The shortcut density is a conditional P(S|R) of the separator of this
-  // clique on the root. We can compute it recursively from the parent shortcut
-  // P(Sp|R) as \int P(Fp|Sp) P(Sp|R), where Fp are the frontal nodes in p
-  /* ************************************************************************* */
-  template<class DERIVED, class FACTORGRAPH>
+  // The shortcut density is a conditional P(S|B) of the separator of this
+  // clique on the root or common ancestor B. We can compute it recursively from
+  // the parent shortcut P(Sp|B) as \int P(Fp|Sp) P(Sp|B), where Fp are the
+  // frontal nodes in the parent p, and Sp the separator of the parent.
+  /* *************************************************************************
+   */
+  template <class DERIVED, class FACTORGRAPH>
   typename BayesTreeCliqueBase<DERIVED, FACTORGRAPH>::BayesNetType
-    BayesTreeCliqueBase<DERIVED, FACTORGRAPH>::shortcut(const derived_ptr& B, Eliminate function) const
-  {
+  BayesTreeCliqueBase<DERIVED, FACTORGRAPH>::shortcut(
+      const derived_ptr& B, Eliminate function) const {
     gttic(BayesTreeCliqueBase_shortcut);
     // We only calculate the shortcut when this clique is not B
     // and when the S\B is not empty
@@ -120,12 +122,10 @@ namespace gtsam {
     {
       // Obtain P(Cp||B) = P(Fp|Sp) * P(Sp||B) as a factor graph
       derived_ptr parent(parent_.lock());
-      gttoc(BayesTreeCliqueBase_shortcut);
       FactorGraphType p_Cp_B(parent->shortcut(B, function)); // P(Sp||B)
-      gttic(BayesTreeCliqueBase_shortcut);
       p_Cp_B.push_back(parent->conditional_); // P(Fp|Sp)
 
-      // Determine the variables we want to keepSet, S union B
+      // Determine the variables we want to keep, S union B
       KeyVector keep = shortcut_indices(B, p_Cp_B);
 
       // Marginalize out everything except S union B
@@ -139,8 +139,10 @@ namespace gtsam {
   }
 
   /* *********************************************************************** */
-  // separator marginal, uses separator marginal of parent recursively
-  // P(C) = P(F|S) P(S)
+  // Separator marginal, uses separator marginal of parent recursively
+  // Calculates P(S) = \int P(Cp) = \int P(Fp|Sp) P(Sp)
+  // if P(Sp) is not cached, it will call separatorMarginal on the parent.
+  // Here again, Fp and Sp are the frontal nodes and separator in the parent p.
   /* *********************************************************************** */
   template <class DERIVED, class FACTORGRAPH>
   typename BayesTreeCliqueBase<DERIVED, FACTORGRAPH>::FactorGraphType
@@ -150,30 +152,22 @@ namespace gtsam {
     gttic(BayesTreeCliqueBase_separatorMarginal);
     // Check if the Separator marginal was already calculated
     if (!cachedSeparatorMarginal_) {
-      gttic(BayesTreeCliqueBase_separatorMarginal_cachemiss);
-
       // If this is the root, there is no separator
       if (parent_.expired() /*(if we're the root)*/) {
         // we are root, return empty
         FactorGraphType empty;
         cachedSeparatorMarginal_ = empty;
       } else {
-        // Flatten recursion in timing outline
-        gttoc(BayesTreeCliqueBase_separatorMarginal_cachemiss);
-        gttoc(BayesTreeCliqueBase_separatorMarginal);
-
         // Obtain P(S) = \int P(Cp) = \int P(Fp|Sp) P(Sp)
         // initialize P(Cp) with the parent separator marginal
         derived_ptr parent(parent_.lock());
-        FactorGraphType p_Cp(parent->separatorMarginal(function));  // P(Sp)
-
-        gttic(BayesTreeCliqueBase_separatorMarginal);
-        gttic(BayesTreeCliqueBase_separatorMarginal_cachemiss);
+        FactorGraphType p_Cp(
+            parent->separatorMarginal(function));  // recursive P(Sp)
 
         // now add the parent conditional
         p_Cp.push_back(parent->conditional_);  // P(Fp|Sp)
 
-        // The variables we want to keepSet are exactly the ones in S
+        // The variables we want to keep are exactly the ones in S
         KeyVector indicesS(this->conditional()->beginParents(),
                            this->conditional()->endParents());
         auto separatorMarginal =

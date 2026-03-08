@@ -21,7 +21,7 @@
 #include <gtsam/global_includes.h>
 #include <gtsam/inference/Key.h>
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/serialization/vector.hpp>
 #endif
 #include <map>
@@ -87,7 +87,7 @@ namespace gtsam {
     /// Check equality to another DiscreteKeys object.
     bool equals(const DiscreteKeys& other, double tol = 0) const;
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
     /** Serialization function */
     friend class boost::serialization::access;
     template <class ARCHIVE>

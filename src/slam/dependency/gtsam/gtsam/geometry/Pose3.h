@@ -11,7 +11,7 @@
 
 /**
  *@file  Pose3.h
- *@brief 3D Pose
+ * @brief 3D Pose manifold SO(3) x R^3 and group SE(3)
  */
 
 // \callgraph
@@ -34,7 +34,7 @@ class Pose2;
  * @ingroup geometry
  * \nosubgrouping
  */
-class GTSAM_EXPORT Pose3: public LieGroup<Pose3, 6> {
+class GTSAM_EXPORT Pose3: public MatrixLieGroup<Pose3, 6, 4> {
 public:
 
   /** Pose Concept requirements */
@@ -47,6 +47,7 @@ private:
   Point3 t_; ///< Translation gPp, from global origin to pose frame origin
 
 public:
+  using Vector16 = Eigen::Matrix<double, 16, 1>;
 
   /// @name Standard Constructors
   /// @{
@@ -55,9 +56,9 @@ public:
   Pose3() : R_(traits<Rot3>::Identity()), t_(traits<Point3>::Identity()) {}
 
   /** Copy constructor */
-  Pose3(const Pose3& pose) :
-      R_(pose.R_), t_(pose.t_) {
-  }
+  Pose3(const Pose3& pose) = default;
+
+  Pose3& operator=(const Pose3& other) = default;
 
   /** Construct from R,t */
   Pose3(const Rot3& R, const Point3& t) :
@@ -77,6 +78,9 @@ public:
   static Pose3 Create(const Rot3& R, const Point3& t,
                       OptionalJacobian<6, 3> HR = {},
                       OptionalJacobian<6, 3> Ht = {});
+
+  /** Construct from Pose2 in the xy plane, with derivative. */
+  static Pose3 FromPose2(const Pose2& p, OptionalJacobian<6,3> H = {});
 
   /**
    *  Create Pose3 by aligning two point pairs
@@ -107,7 +111,7 @@ public:
     return Pose3();
   }
 
-  /// inverse transformation with derivatives
+  /// inverse transformation
   Pose3 inverse() const;
 
   /// compose syntactic sugar
@@ -129,11 +133,16 @@ public:
    * @param T End point of interpolation.
    * @param t A value in [0, 1].
    */
-  Pose3 interpolateRt(const Pose3& T, double t) const;
+  Pose3 interpolateRt(const Pose3& T, double t,
+                      OptionalJacobian<6, 6> Hself = {},
+                      OptionalJacobian<6, 6> Harg = {},
+                      OptionalJacobian<6, 1> Ht = {}) const;
 
   /// @}
   /// @name Lie Group
   /// @{
+
+  using LieAlgebra = Matrix4;
 
   /// Exponential map at identity - create a rotation from canonical coordinates \f$ [R_x,R_y,R_z,T_x,T_y,T_z] \f$
   static Pose3 Expmap(const Vector6& xi, OptionalJacobian<6, 6> Hxi = {});
@@ -201,7 +210,10 @@ public:
   static Matrix6 ExpmapDerivative(const Vector6& xi);
 
   /// Derivative of Logmap
-  static Matrix6 LogmapDerivative(const Pose3& xi);
+  static Matrix6 LogmapDerivative(const Vector6& xi);
+
+  /// Derivative of Logmap, Pose3 version. TODO(Frank): deprecate?
+  static Matrix6 LogmapDerivative(const Pose3& pose);
 
   // Chart at origin, depends on compile-time flag GTSAM_POSE3_EXPMAP
   struct GTSAM_EXPORT ChartAtOrigin {
@@ -209,31 +221,19 @@ public:
     static Vector6 Local(const Pose3& pose, ChartJacobian Hpose = {});
   };
 
-  /**
-  * Compute the 3x3 bottom-left block Q of SE3 Expmap right derivative matrix
-  *  J_r(xi) = [J_(w) Z_3x3;
-  *             Q_r   J_(w)]
-  *  where J_(w) is the SO3 Expmap right derivative.
-  *  (see Chirikjian11book2, pg 44, eq 10.95.
-  *  The closed-form formula is identical to formula 102 in Barfoot14tro where
-  *  Q_l of the SE3 Expmap left derivative matrix is given.
-  */
-  static Matrix3 ComputeQforExpmapDerivative(
-      const Vector6& xi, double nearZeroThreshold = 1e-5);
-
   using LieGroup<Pose3, 6>::inverse; // version with derivative
 
   /**
-   * wedge for Pose3:
+   * Hat for Pose3:
    * @param xi 6-dim twist (omega,v) where
    *  omega = (wx,wy,wz) 3D angular velocity
    *  v (vx,vy,vz) = 3D velocity
    * @return xihat, 4*4 element of Lie algebra that can be exponentiated
    */
-  static Matrix wedge(double wx, double wy, double wz, double vx, double vy,
-      double vz) {
-    return (Matrix(4, 4) << 0., -wz, wy, vx, wz, 0., -wx, vy, -wy, wx, 0., vz, 0., 0., 0., 0.).finished();
-  }
+  static Matrix4 Hat(const Vector6& xi);
+
+  /// Vee maps from Lie algebra to tangent vector
+  static Vector6 Vee(const Matrix4& X);
 
   /// @}
   /// @name Group Action on Point3
@@ -305,6 +305,9 @@ public:
 
   /** convert to 4*4 matrix */
   Matrix4 matrix() const;
+
+  /// Return vectorized SE(3) matrix in column order.
+  Vector16 vec(OptionalJacobian<16, 6> H = {}) const;
 
   /** 
     * Assuming self == wTa, takes a pose aTb in local coordinates 
@@ -388,8 +391,21 @@ public:
   GTSAM_EXPORT
   friend std::ostream &operator<<(std::ostream &os, const Pose3& p);
 
+  /// @}
+  /// @name deprecated
+  /// @{
+
+#ifdef GTSAM_ALLOW_DEPRECATED_SINCE_V43
+  /// @deprecated: use Hat
+  static inline LieAlgebra wedge(double wx, double wy, double wz, double vx,
+                                 double vy, double vz) {
+    return Hat((TangentVector() << wx, wy, wz, vx, vy, vz).finished());
+  }
+#endif
+  /// @}
+
  private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
   /** Serialization function */
   friend class boost::serialization::access;
   template<class Archive>
@@ -408,17 +424,14 @@ public:
 };
 // Pose3 class
 
-/**
- * wedge for Pose3:
- * @param xi 6-dim twist (omega,v) where
- *  omega = 3D angular velocity
- *  v = 3D velocity
- * @return xihat, 4*4 element of Lie algebra that can be exponentiated
- */
+#ifdef GTSAM_ALLOW_DEPRECATED_SINCE_V43
+/// @deprecated: use T::Hat
 template<>
 inline Matrix wedge<Pose3>(const Vector& xi) {
-  return Pose3::wedge(xi(0), xi(1), xi(2), xi(3), xi(4), xi(5));
+  // NOTE(chris): Need eval() as workaround for Apple clang + avx2.
+  return Matrix(Pose3::Hat(xi)).eval();
 }
+#endif
 
 // Convenience typedef
 using Pose3Pair = std::pair<Pose3, Pose3>;
@@ -428,10 +441,10 @@ using Pose3Pairs = std::vector<std::pair<Pose3, Pose3> >;
 typedef std::vector<Pose3> Pose3Vector;
 
 template <>
-struct traits<Pose3> : public internal::LieGroup<Pose3> {};
+struct traits<Pose3> : public internal::MatrixLieGroup<Pose3, 4> {};
 
 template <>
-struct traits<const Pose3> : public internal::LieGroup<Pose3> {};
+struct traits<const Pose3> : public internal::MatrixLieGroup<Pose3, 4> {};
 
 // bearing and range traits, used in RangeFactor
 template <>

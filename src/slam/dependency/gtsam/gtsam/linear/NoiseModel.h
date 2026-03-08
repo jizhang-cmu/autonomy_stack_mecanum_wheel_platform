@@ -24,7 +24,7 @@
 #include <gtsam/dllexport.h>
 #include <gtsam/linear/LossFunctions.h>
 
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
 #include <boost/serialization/nvp.hpp>
 #include <boost/serialization/extended_type_info.hpp>
 #include <boost/serialization/singleton.hpp>
@@ -141,7 +141,7 @@ namespace gtsam {
       virtual double weight(const Vector& v) const { return 1.0; }
 
     private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
       /** Serialization function */
       friend class boost::serialization::access;
       template<class ARCHIVE>
@@ -183,6 +183,8 @@ namespace gtsam {
         return *sqrt_information_;
       }
 
+      /// Compute the log of |R|. Used for computing log(|Σ|)
+      virtual double logDetR() const;
 
     public:
 
@@ -266,8 +268,19 @@ namespace gtsam {
       /// Compute covariance matrix
       virtual Matrix covariance() const;
 
-    private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+      /// Compute the log of |Σ|
+      double logDeterminant() const;
+
+      /**
+       * @brief Compute the negative log of the normalization constant
+       * for a Gaussian noise model k = 1/\sqrt(|2πΣ|).
+       * 
+       * @return double 
+       */
+      double negLogConstant() const;
+
+     private:
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
       /** Serialization function */
       friend class boost::serialization::access;
       template<class ARCHIVE>
@@ -295,10 +308,11 @@ namespace gtsam {
        */
       Vector sigmas_, invsigmas_, precisions_;
 
-    protected:
-
       /** constructor to allow for disabling initialization of invsigmas */
       Diagonal(const Vector& sigmas);
+
+      /// Compute the log of |R|. Used for computing log(|Σ|)
+      virtual double logDetR() const override;
 
     public:
       /** constructor - no initializations, for serialization */
@@ -361,7 +375,7 @@ namespace gtsam {
       }
 
     private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
       /** Serialization function */
       friend class boost::serialization::access;
       template<class ARCHIVE>
@@ -506,7 +520,7 @@ namespace gtsam {
       shared_ptr unit() const;
 
     private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
       /** Serialization function */
       friend class boost::serialization::access;
       template<class ARCHIVE>
@@ -531,6 +545,9 @@ namespace gtsam {
       /** protected constructor takes sigma */
       Isotropic(size_t dim, double sigma) :
         Diagonal(Vector::Constant(dim, sigma)),sigma_(sigma),invsigma_(1.0/sigma) {}
+
+      /// Compute the log of |R|. Used for computing log(|Σ|)
+      virtual double logDetR() const override;
 
     public:
 
@@ -576,7 +593,7 @@ namespace gtsam {
       inline double sigma() const { return sigma_; }
 
     private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
       /** Serialization function */
       friend class boost::serialization::access;
       template<class ARCHIVE>
@@ -595,6 +612,10 @@ namespace gtsam {
      * Unit: i.i.d. unit-variance noise on all m dimensions.
      */
     class GTSAM_EXPORT Unit : public Isotropic {
+    protected:
+      /// Compute the log of |R|. Used for computing log(|Σ|)
+      virtual double logDetR() const override;
+
     public:
 
       typedef std::shared_ptr<Unit> shared_ptr;
@@ -627,7 +648,7 @@ namespace gtsam {
       void unwhitenInPlace(Eigen::Block<Vector>& /*v*/) const override {}
 
     private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
       /** Serialization function */
       friend class boost::serialization::access;
       template<class ARCHIVE>
@@ -718,7 +739,7 @@ namespace gtsam {
         const RobustModel::shared_ptr &robust, const NoiseModel::shared_ptr noise);
 
     private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
       /** Serialization function */
       friend class boost::serialization::access;
       template<class ARCHIVE>

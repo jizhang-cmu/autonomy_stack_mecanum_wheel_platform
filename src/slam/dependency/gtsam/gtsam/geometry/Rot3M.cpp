@@ -153,7 +153,14 @@ Point3 Rot3::rotate(const Point3& p,
 }
 
 /* ************************************************************************* */
-// Log map at identity - return the canonical coordinates of this rotation
+Rot3 Rot3::Expmap(const Vector3& omega, OptionalJacobian<3, 3> H) {
+  so3::DexpFunctor local(omega);
+  if (H) *H = local.rightJacobian();
+  const Matrix3 M = local.expmap();
+  return Rot3(M);
+}
+      
+/* ************************************************************************* */
 Vector3 Rot3::Logmap(const Rot3& R, OptionalJacobian<3,3> H) {
   return SO3::Logmap(R.rot_,H);
 }

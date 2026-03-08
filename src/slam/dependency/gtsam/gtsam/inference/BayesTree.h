@@ -119,13 +119,14 @@ namespace gtsam {
     /** Assignment operator */
     This& operator=(const This& other);
 
+  public:
+  
     /// @name Testable
     /// @{
 
     /** check equality */
     bool equals(const This& other, double tol = 1e-9) const;
 
-  public:
     /** print */
     void print(const std::string& s = "",
         const KeyFormatter& keyFormatter = DefaultKeyFormatter) const;
@@ -185,18 +186,19 @@ namespace gtsam {
      */
     sharedBayesNet jointBayesNet(Key j1, Key j2, const Eliminate& function = EliminationTraitsType::DefaultEliminate) const;
 
-   /// @name Graph Display
-   /// @{
+    /// @}   
+    /// @name Graph Display
+    /// @{
 
-   /// Output to graphviz format, stream version.
-   void dot(std::ostream& os, const KeyFormatter& keyFormatter = DefaultKeyFormatter) const;
+    /// Output to graphviz format, stream version.
+    void dot(std::ostream& os, const KeyFormatter& keyFormatter = DefaultKeyFormatter) const;
 
-   /// Output to graphviz format string.
-   std::string dot(
-       const KeyFormatter& keyFormatter = DefaultKeyFormatter) const;
+    /// Output to graphviz format string.
+    std::string dot(
+        const KeyFormatter& keyFormatter = DefaultKeyFormatter) const;
 
-   /// output to file with graphviz format.
-   void saveGraph(const std::string& filename,
+    /// output to file with graphviz format.
+    void saveGraph(const std::string& filename,
                   const KeyFormatter& keyFormatter = DefaultKeyFormatter) const;
   
     /// @}
@@ -262,7 +264,7 @@ namespace gtsam {
     template<class BAYESTREE, class GRAPH> friend class EliminatableClusterTree;
 
    private:
-#ifdef GTSAM_ENABLE_BOOST_SERIALIZATION
+#if GTSAM_ENABLE_BOOST_SERIALIZATION
     /** Serialization function */
     friend class boost::serialization::access;
     template<class ARCHIVE>

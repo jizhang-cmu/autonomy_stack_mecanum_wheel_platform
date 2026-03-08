@@ -86,21 +86,21 @@ class IndexPairSetMap {
 
 #include <gtsam/base/Matrix.h>
 #include <gtsam/base/MatrixSerialization.h>
-bool linear_independent(Matrix A, Matrix B, double tol);
+bool linear_independent(gtsam::Matrix A, gtsam::Matrix B, double tol);
 
 #include <gtsam/base/Value.h>
 virtual class Value {
   // No constructors because this is an abstract class
 
   // Testable
-  void print(string s = "") const;
+  void print(string str = "") const;
 
   // Manifold
   size_t dim() const;
 };
 
 #include <gtsam/base/GenericValue.h>
-template <T = {Vector, Matrix, gtsam::Point2, gtsam::Point3, gtsam::Rot2,
+template <T = {gtsam::Vector, gtsam::Matrix, gtsam::Point2, gtsam::Point3, gtsam::Rot2,
                gtsam::Rot3, gtsam::Pose2, gtsam::Pose3, gtsam::StereoPoint2,
                gtsam::Cal3_S2, gtsam::Cal3DS2, gtsam::Cal3Bundler,
                gtsam::Cal3Fisheye, gtsam::Cal3Unified, gtsam::EssentialMatrix,
