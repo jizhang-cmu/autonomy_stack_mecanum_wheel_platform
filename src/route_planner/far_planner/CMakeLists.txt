@@ -24,6 +24,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_sensor_msgs REQUIRED)
 find_package(visibility_graph_msg REQUIRED)
+find_package(jsoncpp REQUIRED)
 
 # Directories
 include_directories(
@@ -60,7 +61,7 @@ set(SOURCES ${SOURCES}
 
 add_executable(${PROJECT_NAME} src/far_planner.cpp ${SOURCES})
 
-ament_target_dependencies(${PROJECT_NAME} rclcpp std_msgs std_srvs sensor_msgs nav_msgs visualization_msgs pcl_conversions visibility_graph_msg tf2 tf2_ros tf2_geometry_msgs tf2_sensor_msgs)
+target_link_libraries(${PROJECT_NAME} rclcpp::rclcpp std_msgs::std_msgs std_srvs::std_srvs sensor_msgs::sensor_msgs nav_msgs::nav_msgs visualization_msgs::visualization_msgs pcl_conversions::pcl_conversions visibility_graph_msg::visibility_graph_msg tf2::tf2 tf2_ros::tf2_ros tf2_geometry_msgs::tf2_geometry_msgs tf2_sensor_msgs::tf2_sensor_msgs)
 
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${OpenCV_LIBS})
 

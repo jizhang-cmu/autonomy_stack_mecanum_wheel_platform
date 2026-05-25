@@ -19,7 +19,8 @@ rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr pub_depth;
 
 void repub_handler(const sensor_msgs::msg::CompressedImage::SharedPtr msg, rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr publisher)
 {
-    cv::Mat frame = cv::imdecode(cv::Mat(msg->data), 1);
+    cv::Mat buffer(1, static_cast<int>(msg->data.size()), CV_8UC1, const_cast<unsigned char*>(msg->data.data()));
+    cv::Mat frame = cv::imdecode(buffer, 1);
 
     if (frame.empty()){
         RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to decode image.");

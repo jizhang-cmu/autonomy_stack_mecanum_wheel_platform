@@ -38,6 +38,7 @@ find_package(Ceres REQUIRED)
 find_package(GTSAM REQUIRED QUIET)
 find_package(TBB REQUIRED)
 find_package(livox_ros_driver2 REQUIRED)
+find_package(jsoncpp REQUIRED)
 
 # Include directories
 include_directories(
@@ -85,21 +86,21 @@ target_include_directories(AriseSlamLib PUBLIC
     $<INSTALL_INTERFACE:include/AriseSlamLib>  # <prefix>/include/mylib
 )
 
-ament_target_dependencies(AriseSlamLib
-  rclcpp
-  std_msgs
-  geometry_msgs
-  nav_msgs 
-  sensor_msgs
-  image_transport
-  cv_bridge
-  tf2
-  tf2_ros
-  tf2_geometry_msgs
-  arise_slam_mid360_msgs
-  visualization_msgs
-  pcl_conversions
-  livox_ros_driver2
+target_link_libraries(AriseSlamLib
+  rclcpp::rclcpp
+  std_msgs::std_msgs
+  geometry_msgs::geometry_msgs
+  nav_msgs::nav_msgs
+  sensor_msgs::sensor_msgs
+  image_transport::image_transport
+  cv_bridge::cv_bridge
+  tf2::tf2
+  tf2_ros::tf2_ros
+  tf2_geometry_msgs::tf2_geometry_msgs
+  arise_slam_mid360_msgs::arise_slam_mid360_msgs
+  visualization_msgs::visualization_msgs
+  pcl_conversions::pcl_conversions
+  livox_ros_driver2::livox_ros_driver2
 )
 target_link_libraries(AriseSlamLib
   ${PCL_LIBRARIES}
@@ -110,7 +111,7 @@ target_link_libraries(AriseSlamLib
 
 # IMU PreIntegration node
 add_executable(imu_preintegration_node src/imuPreintegration_node.cpp)
-ament_target_dependencies(imu_preintegration_node rclcpp nav_msgs sensor_msgs tf2_ros)
+target_link_libraries(imu_preintegration_node rclcpp::rclcpp nav_msgs::nav_msgs sensor_msgs::sensor_msgs tf2_ros::tf2_ros)
 target_link_libraries(imu_preintegration_node
     gtsam
     AriseSlamLib
@@ -120,18 +121,16 @@ target_link_libraries(imu_preintegration_node
 
 # Feature Extraction node
 add_executable(feature_extraction_node src/featureExtraction_node.cpp)
-ament_target_dependencies(feature_extraction_node rclcpp nav_msgs sensor_msgs arise_slam_mid360_msgs livox_ros_driver2)
-target_link_libraries(feature_extraction_node 
+target_link_libraries(feature_extraction_node rclcpp::rclcpp nav_msgs::nav_msgs sensor_msgs::sensor_msgs arise_slam_mid360_msgs::arise_slam_mid360_msgs livox_ros_driver2::livox_ros_driver2)
+target_link_libraries(feature_extraction_node
   ${PCL_LIBRARIES}
   ${TBB_LIBRARIES}
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<INSTALL_INTERFACE:include>
   AriseSlamLib
 )
 
 # LiDAR Mapping node
 add_executable(laser_mapping_node src/laserMapping_node.cpp)
-ament_target_dependencies(laser_mapping_node rclcpp std_msgs nav_msgs sensor_msgs geometry_msgs tf2 tf2_ros)
+target_link_libraries(laser_mapping_node rclcpp::rclcpp std_msgs::std_msgs nav_msgs::nav_msgs sensor_msgs::sensor_msgs geometry_msgs::geometry_msgs tf2::tf2 tf2_ros::tf2_ros)
 target_link_libraries(laser_mapping_node
     ${PCL_LIBRARIES}
     ${CERES_LIBRARIES}

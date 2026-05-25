@@ -9,7 +9,7 @@
 
 #include <tbb/concurrent_vector.h>
 
-#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Quaternion.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include "arise_slam_mid360/sensor_data/pointcloud/LidarPoint.h"

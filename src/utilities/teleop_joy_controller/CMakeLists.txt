@@ -13,7 +13,9 @@ find_package(geometry_msgs REQUIRED)
 find_package(serial REQUIRED)
 
 add_executable(teleopJoyController src/teleopJoyController.cpp)
-ament_target_dependencies(teleopJoyController rclcpp std_msgs sensor_msgs geometry_msgs serial)
+target_link_libraries(teleopJoyController rclcpp::rclcpp std_msgs::std_msgs sensor_msgs::sensor_msgs geometry_msgs::geometry_msgs)
+target_include_directories(teleopJoyController PRIVATE ${serial_INCLUDE_DIRS})
+target_link_libraries(teleopJoyController ${serial_LIBRARIES})
 
 install(TARGETS
   teleopJoyController

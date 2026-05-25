@@ -14,7 +14,7 @@ find_package(rosbag2_cpp REQUIRED)
 find_package(rosidl_typesupport_cpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(yaml_cpp_vendor REQUIRED)
-find_package(zstd_vendor REQUIRED)
+find_package(zstd_cmake_module REQUIRED)
 find_package(zstd REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -41,14 +41,14 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   target_link_libraries(${PROJECT_NAME}_lib stdc++fs)
 endif()
 
-ament_target_dependencies(${PROJECT_NAME}_lib
-  rclcpp
-  rclcpp_components
-  rcutils
-  rosbag2_cpp
-  rosidl_typesupport_cpp
-  yaml_cpp_vendor
-  zstd
+target_link_libraries(${PROJECT_NAME}_lib
+  rclcpp::rclcpp
+  rclcpp_components::component_manager
+  rcutils::rcutils
+  rosbag2_cpp::rosbag2_cpp
+  rosidl_typesupport_cpp::rosidl_typesupport_cpp
+  yaml-cpp
+  zstd::zstd
 )
 
 rosidl_get_typesupport_target(cpp_typesupport_target
@@ -61,8 +61,8 @@ add_executable(${PROJECT_NAME}_exec
   src/domain_bridge.cpp
 )
 
-ament_target_dependencies(${PROJECT_NAME}_exec
-  "rclcpp_components")
+target_link_libraries(${PROJECT_NAME}_exec
+  rclcpp_components::component_manager)
 
 set_target_properties(${PROJECT_NAME}_exec PROPERTIES OUTPUT_NAME ${PROJECT_NAME} PREFIX "")
 
@@ -89,8 +89,8 @@ if(rti_connext_dds_cmake_module_FOUND AND rcpputils_FOUND)
       RTIConnextDDS::c_api
     )
 
-    ament_target_dependencies(${PROJECT_NAME}_rti_exec
-      rcpputils
+    target_link_libraries(${PROJECT_NAME}_rti_exec
+      rcpputils::rcpputils
     )
     list(APPEND executables ${PROJECT_NAME}_rti_exec)
   endif()
@@ -124,7 +124,7 @@ ament_export_dependencies(
   rosbag2_cpp
   rcutils
   yaml_cpp_vendor
-  zstd_vendor
+  zstd_cmake_module
   zstd
 )
 
