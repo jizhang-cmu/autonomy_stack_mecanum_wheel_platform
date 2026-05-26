@@ -632,6 +632,16 @@ void DomainBridge::add_to_executor(rclcpp::Executor & executor)
   impl_->add_to_executor(executor);
 }
 
+std::vector<std::shared_ptr<rclcpp::Node>> DomainBridge::get_bridge_nodes() const
+{
+  std::vector<std::shared_ptr<rclcpp::Node>> nodes;
+  nodes.reserve(impl_->node_map_.size());
+  for (const auto & domain_id_node_pair : impl_->node_map_) {
+    nodes.push_back(domain_id_node_pair.second);
+  }
+  return nodes;
+}
+
 void DomainBridge::bridge_topic(
   const std::string & topic,
   const std::string & type,

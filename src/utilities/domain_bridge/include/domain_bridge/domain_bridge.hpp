@@ -108,6 +108,15 @@ public:
   DOMAIN_BRIDGE_PUBLIC
   void add_to_executor(rclcpp::Executor & executor);
 
+  /// Get the bridge nodes.
+  /**
+   * Each bridged domain has its own node (with its own context). Callers that
+   * need to spin the bridge with per-context executors can use this to enumerate
+   * the nodes.
+   */
+  DOMAIN_BRIDGE_PUBLIC
+  std::vector<std::shared_ptr<rclcpp::Node>> get_bridge_nodes() const;
+
   /// Bridge a topic from one domain to another.
   /**
    * \param topic: Name of the topic to bridge.

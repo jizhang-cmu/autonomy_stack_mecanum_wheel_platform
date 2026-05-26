@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #include <memory>
+#include <thread>
+#include <unordered_map>
+#include <vector>
 
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp/executors/single_threaded_executor.hpp"
@@ -32,13 +35,47 @@ int main(int argc, char ** argv)
   }
   domain_bridge::DomainBridge domain_bridge(*config_rc_pair.first);
 
-  // Add component manager node and domain bridge to single-threaded executor
-  auto executor = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
-  auto node = std::make_shared<domain_bridge::ComponentManager>(executor);
+  // Each domain bridge node has its own rclcpp::Context (one per bridged domain
+  // ID). rclcpp now enforces that an executor and the nodes it spins share a
+  // context, so we cannot put them all on a single executor. Group nodes by
+  // context and give each context its own executor and worker thread.
+  std::unordered_map<
+    rclcpp::Context::SharedPtr,
+    std::shared_ptr<rclcpp::executors::SingleThreadedExecutor>> bridge_executors;
 
-  domain_bridge.add_to_executor(*executor);
-  executor->add_node(node);
-  executor->spin();
+  for (const auto & node : domain_bridge.get_bridge_nodes()) {
+    auto context = node->get_node_base_interface()->get_context();
+    auto & executor = bridge_executors[context];
+    if (!executor) {
+      rclcpp::ExecutorOptions exec_options;
+      exec_options.context = context;
+      executor = std::make_shared<rclcpp::executors::SingleThreadedExecutor>(exec_options);
+    }
+    executor->add_node(node);
+  }
+
+  std::vector<std::thread> bridge_threads;
+  bridge_threads.reserve(bridge_executors.size());
+  for (auto & ctx_executor_pair : bridge_executors) {
+    auto executor = ctx_executor_pair.second;
+    bridge_threads.emplace_back([executor]() {executor->spin();});
+  }
+
+  // The ComponentManager uses the default context, so spin it on the main
+  // thread with its own executor.
+  auto component_executor = std::make_shared<rclcpp::executors::SingleThreadedExecutor>();
+  auto component_node = std::make_shared<domain_bridge::ComponentManager>(component_executor);
+  component_executor->add_node(component_node);
+  component_executor->spin();
+
+  for (auto & ctx_executor_pair : bridge_executors) {
+    ctx_executor_pair.second->cancel();
+  }
+  for (auto & thread : bridge_threads) {
+    if (thread.joinable()) {
+      thread.join();
+    }
+  }
 
   rclcpp::shutdown();
   return 0;
