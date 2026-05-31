@@ -27,6 +27,7 @@ feature_extraction_node:
         blindDiskLow: -0.05
         blindDiskHigh: 0.05
         blindDiskRadius: 0.5
+        maxAdjDiff: -1.0
         use_imu_roll_pitch: false
         use_dynamic_mask: false
         use_up_realsense_points: false
