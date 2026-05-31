@@ -76,6 +76,7 @@ namespace arise_slam {
         double blindDiskLow;
         double blindDiskHigh;
         double blindDiskRadius;
+        double maxAdjDiff;
     };
 
     struct feature_extraction_config{

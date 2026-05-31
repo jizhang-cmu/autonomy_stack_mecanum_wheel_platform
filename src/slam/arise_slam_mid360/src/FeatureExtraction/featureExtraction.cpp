@@ -173,6 +173,7 @@ namespace arise_slam {
         this->declare_parameter<double>("blindDiskLow");
         this->declare_parameter<double>("blindDiskHigh");
         this->declare_parameter<double>("blindDiskRadius");
+        this->declare_parameter<double>("maxAdjDiff");
         this->declare_parameter<bool>("use_dynamic_mask");
         this->declare_parameter<bool>("use_imu_roll_pitch");
         this->declare_parameter<bool>("use_up_realsense_points");
@@ -200,6 +201,7 @@ namespace arise_slam {
         config_.box_size.blindDiskLow = this->get_parameter("blindDiskLow").as_double();
         config_.box_size.blindDiskHigh = this->get_parameter("blindDiskHigh").as_double();
         config_.box_size.blindDiskRadius = this->get_parameter("blindDiskRadius").as_double();
+        config_.box_size.maxAdjDiff = this->get_parameter("maxAdjDiff").as_double();
         config_.use_imu_roll_pitch = this->get_parameter("use_imu_roll_pitch").as_bool();
         config_.use_up_realsense_points = this->get_parameter("use_up_realsense_points").as_bool();
         config_.use_down_realsense_points = this->get_parameter("use_down_realsense_points").as_bool();       
@@ -267,10 +269,17 @@ namespace arise_slam {
         {
             //In the bounding box filter
             float pointDis = sqrt(cloud_in.points[i].x * cloud_in.points[i].x + cloud_in.points[i].y * cloud_in.points[i].y);
+            float pointDisPre = 100000.0, pointDisNext = 100000.0;
+            if (config_.box_size.maxAdjDiff > 0) {
+              if (i > 0) pointDisPre = sqrt(cloud_in.points[i - 1].x * cloud_in.points[i - 1].x + cloud_in.points[i - 1].y * cloud_in.points[i - 1].y);
+              if (i < cloud_in.points.size() - 1) pointDisNext = sqrt(cloud_in.points[i + 1].x * cloud_in.points[i + 1].x + cloud_in.points[i + 1].y * cloud_in.points[i + 1].y);
+            }
+
             if ((cloud_in.points[i].x > config_.box_size.blindBack && cloud_in.points[i].x < config_.box_size.blindFront &&
                 cloud_in.points[i].y > config_.box_size.blindRight && cloud_in.points[i].y < config_.box_size.blindLeft) ||
                 (cloud_in.points[i].z > config_.box_size.blindDiskLow && cloud_in.points[i].z < config_.box_size.blindDiskHigh &&
-                pointDis < config_.box_size.blindDiskRadius))
+                pointDis < config_.box_size.blindDiskRadius) || (fabs(pointDis - pointDisPre) > config_.box_size.maxAdjDiff && 
+                fabs(pointDis - pointDisNext) > config_.box_size.maxAdjDiff && config_.box_size.maxAdjDiff > 0))
             {
                 continue;
             }
