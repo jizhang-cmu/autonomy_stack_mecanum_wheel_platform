@@ -46,6 +46,8 @@ const double PI = 3.1415926;
 string pathFolder;
 double vehicleLength = 0.6;
 double vehicleWidth = 0.6;
+double vehicleLengthSlot = 0.1;
+double vehicleWidthMargin = 0.1;
 double sensorOffsetX = 0;
 double sensorOffsetY = 0;
 bool twoWayDrive = true;
@@ -62,6 +64,7 @@ double costHeightThre2 = 0.1;
 bool useCost = false;
 int slowPathNumThre = 5;
 int slowGroupNumThre = 1;
+int surPointThre = 2;
 const int laserCloudStackNum = 1;
 int laserCloudCount = 0;
 int pointPerPathThre = 2;
@@ -515,6 +518,8 @@ int main(int argc, char** argv)
   nh->declare_parameter<std::string>("pathFolder", pathFolder);
   nh->declare_parameter<double>("vehicleLength", vehicleLength);
   nh->declare_parameter<double>("vehicleWidth", vehicleWidth);
+  nh->declare_parameter<double>("vehicleLengthSlot", vehicleLengthSlot);
+  nh->declare_parameter<double>("vehicleWidthMargin", vehicleWidthMargin);
   nh->declare_parameter<double>("sensorOffsetX", sensorOffsetX);
   nh->declare_parameter<double>("sensorOffsetY", sensorOffsetY);
   nh->declare_parameter<bool>("twoWayDrive", twoWayDrive);
@@ -531,6 +536,7 @@ int main(int argc, char** argv)
   nh->declare_parameter<bool>("useCost", useCost);
   nh->declare_parameter<int>("slowPathNumThre", slowPathNumThre);
   nh->declare_parameter<int>("slowGroupNumThre", slowGroupNumThre);
+  nh->declare_parameter<int>("surPointThre", surPointThre);
   nh->declare_parameter<int>("pointPerPathThre", pointPerPathThre);
   nh->declare_parameter<double>("minRelZ", minRelZ);
   nh->declare_parameter<double>("maxRelZ", maxRelZ);
@@ -561,6 +567,8 @@ int main(int argc, char** argv)
   nh->get_parameter("pathFolder", pathFolder);
   nh->get_parameter("vehicleLength", vehicleLength);
   nh->get_parameter("vehicleWidth", vehicleWidth);
+  nh->get_parameter("vehicleLengthSlot", vehicleLengthSlot);
+  nh->get_parameter("vehicleWidthMargin", vehicleWidthMargin);
   nh->get_parameter("sensorOffsetX", sensorOffsetX);
   nh->get_parameter("sensorOffsetY", sensorOffsetY);
   nh->get_parameter("twoWayDrive", twoWayDrive);
@@ -577,6 +585,7 @@ int main(int argc, char** argv)
   nh->get_parameter("useCost", useCost);
   nh->get_parameter("slowPathNumThre", slowPathNumThre);
   nh->get_parameter("slowGroupNumThre", slowGroupNumThre);
+  nh->get_parameter("surPointThre", surPointThre);
   nh->get_parameter("pointPerPathThre", pointPerPathThre);
   nh->get_parameter("minRelZ", minRelZ);
   nh->get_parameter("maxRelZ", maxRelZ);
@@ -624,6 +633,9 @@ int main(int argc, char** argv)
 
   auto pubSlowDown = nh->create_publisher<std_msgs::msg::Int8> ("/slow_down", 5);
   std_msgs::msg::Int8 slow;
+
+  auto pubSurBlock = nh->create_publisher<std_msgs::msg::Int8> ("/surrounding_block", 5);
+  std_msgs::msg::Int8 block;
 
   auto pubPath = nh->create_publisher<nav_msgs::msg::Path>("/path", 5);
   nav_msgs::msg::Path path;
@@ -748,6 +760,28 @@ int main(int argc, char** argv)
         }
       }
 
+      int brCount = 0, blCount = 0, frCount = 0, flCount = 0;
+      int plannerCloudCropSize = plannerCloudCrop->points.size();
+      for (int i = 0; i < plannerCloudCropSize; i++) {
+        float x = plannerCloudCrop->points[i].x;
+        float y = plannerCloudCrop->points[i].y;
+        float h = plannerCloudCrop->points[i].intensity;
+
+        if (h > obstacleHeightThre || !useTerrainAnalysis) {
+          if (x > -vehicleLength / 2.0 && x < -vehicleLengthSlot && y > -vehicleWidth / 2.0 - vehicleWidthMargin && y < -vehicleWidth / 2.0) brCount++;
+          if (x > -vehicleLength / 2.0 && x < -vehicleLengthSlot && y > vehicleWidth / 2.0 && y < vehicleWidth / 2.0 + vehicleWidthMargin) blCount++;
+          if (x > vehicleLengthSlot && x < vehicleLength / 2.0 && y > -vehicleWidth / 2.0 - vehicleWidthMargin && y < -vehicleWidth / 2.0) frCount++;
+          if (x > vehicleLengthSlot && x < vehicleLength / 2.0 && y > vehicleWidth / 2.0 && y < vehicleWidth / 2.0 + vehicleWidthMargin) flCount++;
+        }
+      }
+
+      block.data = 0;
+      if (brCount >= surPointThre) block.data += 1;
+      if (blCount >= surPointThre) block.data += 2;
+      if (frCount >= surPointThre) block.data += 4;
+      if (flCount >= surPointThre) block.data += 8;
+      pubSurBlock->publish(block);
+
       float pathRange = adjacentRange;
       if (pathRangeBySpeed) pathRange = adjacentRange * joySpeed;
       if (pathRange < minPathRange) pathRange = minPathRange;
@@ -813,7 +847,6 @@ int main(int argc, char** argv)
         float minObsAngCCW = 180.0;
         float diameter = sqrt(vehicleLength / 2.0 * vehicleLength / 2.0 + vehicleWidth / 2.0 * vehicleWidth / 2.0);
         float angOffset = atan2(vehicleWidth, vehicleLength) * 180.0 / PI;
-        int plannerCloudCropSize = plannerCloudCrop->points.size();
         for (int i = 0; i < plannerCloudCropSize; i++) {
           float x = plannerCloudCrop->points[i].x / pathScale;
           float y = plannerCloudCrop->points[i].y / pathScale;

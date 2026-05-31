@@ -65,6 +65,7 @@ double slowRate2 = 0.5;
 double slowRate3 = 0.75;
 double slowTime1 = 2.0;
 double slowTime2 = 2.0;
+bool useSideAvoid = false;
 bool useInclToStop = false;
 double inclThre = 45.0;
 double stopTime = 5.0;
@@ -83,6 +84,10 @@ float joyManualLeft = 0;
 float joyManualYaw = 0;
 int safetyStop = 0;
 int slowDown = 0;
+bool brblock = false;
+bool blblock = false;
+bool frblock = false;
+bool flblock = false;
 
 float vehicleX = 0;
 float vehicleY = 0;
@@ -211,6 +216,18 @@ void slowDownHandler(const std_msgs::msg::Int8::ConstSharedPtr slow)
   slowDown = slow->data;
 }
 
+void surBlockHandler(const std_msgs::msg::Int8::ConstSharedPtr block)
+{
+  if (block->data % 2 >= 1) brblock = true;
+  else brblock = false;
+  if (block->data % 4 >= 2) blblock = true;
+  else blblock = false;
+  if (block->data % 8 >= 4) frblock = true;
+  else frblock = false;
+  if (block->data >= 8) flblock = true;
+  else flblock = false;
+}
+
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
@@ -242,6 +259,7 @@ int main(int argc, char** argv)
   nh->declare_parameter<double>("slowRate3", slowRate3);
   nh->declare_parameter<double>("slowTime1", slowTime1);
   nh->declare_parameter<double>("slowTime2", slowTime2);
+  nh->declare_parameter<bool>("useSideAvoid", useSideAvoid);
   nh->declare_parameter<bool>("useInclToStop", useInclToStop);
   nh->declare_parameter<double>("inclThre", inclThre);
   nh->declare_parameter<double>("stopTime", stopTime);
@@ -277,6 +295,7 @@ int main(int argc, char** argv)
   nh->get_parameter("slowRate3", slowRate3);
   nh->get_parameter("slowTime1", slowTime1);
   nh->get_parameter("slowTime2", slowTime2);
+  nh->get_parameter("useSideAvoid", useSideAvoid);
   nh->get_parameter("useInclToStop", useInclToStop);
   nh->get_parameter("inclThre", inclThre);
   nh->get_parameter("stopTime", stopTime);
@@ -297,6 +316,8 @@ int main(int argc, char** argv)
   auto subStop = nh->create_subscription<std_msgs::msg::Int8>("/stop", 5, stopHandler);
 
   auto subSlowDown = nh->create_subscription<std_msgs::msg::Int8>("/slow_down", 5, slowDownHandler);
+
+  auto subSurBlock = nh->create_subscription<std_msgs::msg::Int8>("/surrounding_block", 5, surBlockHandler);
 
   auto pubSpeed = nh->create_publisher<geometry_msgs::msg::TwistStamped>("/cmd_vel", 5);
   geometry_msgs::msg::TwistStamped cmd_vel;
@@ -429,6 +450,24 @@ int main(int argc, char** argv)
             cmd_vel.twist.linear.y = -sin(dirDiff) * vehicleSpeed;
           } else {
             cmd_vel.twist.linear.x = vehicleSpeed;
+          }
+        } else {
+          if (omniDirGoalThre > 0 && useSideAvoid) {
+            if (vehicleYawRate < 0 && (blblock || frblock)) {
+              cmd_vel.twist.angular.z = 0;
+              if (blblock && !brblock && !frblock) {
+                cmd_vel.twist.linear.y = -maxSpeed / 2.0;
+              } else if (frblock && !blblock && !flblock) {
+                cmd_vel.twist.linear.y = maxSpeed / 2.0;
+              }
+            } else if (vehicleYawRate > 0 && (brblock || flblock)) {
+              cmd_vel.twist.angular.z = 0;
+              if (flblock && !brblock && !frblock) {
+                cmd_vel.twist.linear.y = -maxSpeed / 2.0;
+              } else if (brblock && !blblock && !flblock) {
+                cmd_vel.twist.linear.y = maxSpeed / 2.0;
+              }
+            }
           }
         }
 
