@@ -569,24 +569,25 @@ int main(int argc, char **argv) {
               indY < planarVoxelWidth) {
             int dyObsPointNum = planarVoxelDyObs[planarVoxelWidth * indX + indY];
             if (dyObsPointNum < minDyObsPointNum || !clearDyObs) {
-              float disZ = point.z - planarVoxelElev[planarVoxelWidth * indX + indY];
-
               float pointX = point.x - vehicleX;
               float pointY = point.y - vehicleY;
               float pointZ = point.z - vehicleZ;
               float pointXY = sqrt(pointX * pointX + pointY * pointY);
 
-              if (pointXY < nearObstacleDis && pointZ > nearObstacleRelZThre && nearObstacle) disZ = vehicleHeight;
+              float disZ = point.z - planarVoxelElev[planarVoxelWidth * indX + indY];
+              float disZ2 = disZ;
+
+              if (considerDrop) disZ2 = fabs(disZ2);
+              if (pointXY < nearObstacleDis && pointZ > nearObstacleRelZThre && nearObstacle) disZ2 = vehicleHeight;
               if (pointXY < negObstacleDis && ((disZ < negObstacleRelZThre && negObstacle == 0) || 
-                  (pointZ < negObstacleRelZThre && negObstacle == 1))) disZ = vehicleHeight;
-              if (considerDrop) disZ = fabs(disZ);
+                  (pointZ < negObstacleRelZThre && negObstacle == 1))) disZ2 = vehicleHeight;
 
               int planarPointElevSize = planarPointElev[planarVoxelWidth * indX + indY].size();
               int outOfFovPointNum = planarVoxelOutOfFov[planarVoxelWidth * indX + indY];
-              if (disZ >= 0 && disZ <= vehicleHeight && planarPointElevSize >= minBlockPointNum &&
+              if (disZ2 >= 0 && disZ2 <= vehicleHeight && planarPointElevSize >= minBlockPointNum &&
                   (outOfFovPointNum >= minOutOfFovPointNum || disZ < obstacleHeightThre || dyObsPointNum < 0 || !clearDyObs)) {
                 terrainCloudElev->push_back(point);
-                terrainCloudElev->points[terrainCloudElevSize].intensity = disZ;
+                terrainCloudElev->points[terrainCloudElevSize].intensity = disZ2;
 
                 terrainCloudElevSize++;
               }
