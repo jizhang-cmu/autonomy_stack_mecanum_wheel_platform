@@ -18,6 +18,11 @@
     <param name="minDyObsPointNum" value="1" />
     <param name="minOutOfFovPointNum" value="10" />
     <param name="obstacleHeightThre" value="0.1" />
+    <param name="nearObstacle" value="true" />
+    <param name="nearObstacleDis" value="1.25" />
+    <param name="nearObstacleRelZThre" value="-0.2" />
+    <param name="negObstacle" value="false" />
+    <param name="negObstacleRelZThre" value="-0.2" />
     <param name="noDataObstacle" value="false" />
     <param name="noDataBlockSkipNum" value="0" />
     <param name="minBlockPointNum" value="10" />

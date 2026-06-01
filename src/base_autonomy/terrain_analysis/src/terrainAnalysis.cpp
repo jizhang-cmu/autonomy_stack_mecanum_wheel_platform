@@ -51,6 +51,11 @@ double maxDyObsVFOV = 16.0;
 int minDyObsPointNum = 1;
 int minOutOfFovPointNum = 2;
 double obstacleHeightThre = 0.2;
+bool nearObstacle = true;
+double nearObstacleDis = 1.25;
+double nearObstacleRelZThre = -0.2;
+bool negObstacle = false;
+double negObstacleRelZThre = -0.2;
 bool noDataObstacle = false;
 int noDataBlockSkipNum = 0;
 int minBlockPointNum = 10;
@@ -219,6 +224,11 @@ int main(int argc, char **argv) {
   nh->declare_parameter<int>("minDyObsPointNum", minDyObsPointNum);
   nh->declare_parameter<int>("minOutOfFovPointNum", minOutOfFovPointNum);
   nh->declare_parameter<double>("obstacleHeightThre", obstacleHeightThre);
+  nh->declare_parameter<bool>("nearObstacle", nearObstacle);
+  nh->declare_parameter<double>("nearObstacleDis", nearObstacleDis);
+  nh->declare_parameter<double>("nearObstacleRelZThre", nearObstacleRelZThre);
+  nh->declare_parameter<bool>("negObstacle", negObstacle);
+  nh->declare_parameter<double>("negObstacleRelZThre", negObstacleRelZThre);
   nh->declare_parameter<bool>("noDataObstacle", noDataObstacle);
   nh->declare_parameter<int>("noDataBlockSkipNum", noDataBlockSkipNum);
   nh->declare_parameter<int>("minBlockPointNum", minBlockPointNum);
@@ -246,6 +256,11 @@ int main(int argc, char **argv) {
   nh->get_parameter("minDyObsPointNum", minDyObsPointNum);
   nh->get_parameter("minOutOfFovPointNum", minOutOfFovPointNum);
   nh->get_parameter("obstacleHeightThre", obstacleHeightThre);
+  nh->get_parameter("nearObstacle", nearObstacle);
+  nh->get_parameter("nearObstacleDis", nearObstacleDis);
+  nh->get_parameter("nearObstacleRelZThre", nearObstacleRelZThre);
+  nh->get_parameter("negObstacle", negObstacle);
+  nh->get_parameter("negObstacleRelZThre", negObstacleRelZThre);
   nh->get_parameter("noDataObstacle", noDataObstacle);
   nh->get_parameter("noDataBlockSkipNum", noDataBlockSkipNum);
   nh->get_parameter("minBlockPointNum", minBlockPointNum);
@@ -593,14 +608,22 @@ int main(int argc, char **argv) {
               indY < planarVoxelWidth) {
             int dyObsPointNum = planarVoxelDyObs[planarVoxelWidth * indX + indY];
             if (dyObsPointNum < minDyObsPointNum || !clearDyObs) {
-              float disZ =
-                  point.z - planarVoxelElev[planarVoxelWidth * indX + indY];
-              if (considerDrop)
-                disZ = fabs(disZ);
-              int planarPointElevSize =
-                  planarPointElev[planarVoxelWidth * indX + indY].size();
+              float disZ = point.z - planarVoxelElev[planarVoxelWidth * indX + indY];
+
+              if (nearObstacle) {
+                float pointX = point.x - vehicleX;
+                float pointY = point.y - vehicleY;
+                float pointZ = point.z - vehicleZ;
+                float pointXY = sqrt(pointX * pointX + pointY * pointY);
+                if (pointXY < nearObstacleDis && pointZ > nearObstacleRelZThre) disZ = vehicleHeight;
+              }
+
+              if (disZ < negObstacleRelZThre && negObstacle) disZ = vehicleHeight;
+              if (considerDrop) disZ = fabs(disZ);
+
+              int planarPointElevSize = planarPointElev[planarVoxelWidth * indX + indY].size();
               int outOfFovPointNum = planarVoxelOutOfFov[planarVoxelWidth * indX + indY];
-              if (disZ >= 0 && disZ < vehicleHeight && planarPointElevSize >= minBlockPointNum &&
+              if (disZ >= 0 && disZ <= vehicleHeight && planarPointElevSize >= minBlockPointNum &&
                   (outOfFovPointNum >= minOutOfFovPointNum || disZ < obstacleHeightThre || dyObsPointNum < 0 || !clearDyObs)) {
                 terrainCloudElev->push_back(point);
                 terrainCloudElev->points[terrainCloudElevSize].intensity = disZ;
