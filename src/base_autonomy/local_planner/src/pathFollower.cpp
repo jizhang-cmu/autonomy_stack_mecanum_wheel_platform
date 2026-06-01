@@ -89,6 +89,8 @@ bool brblock = false;
 bool blblock = false;
 bool frblock = false;
 bool flblock = false;
+bool rblock = false;
+bool lblock = false;
 
 float vehicleX = 0;
 float vehicleY = 0;
@@ -225,8 +227,12 @@ void surBlockHandler(const std_msgs::msg::Int8::ConstSharedPtr block)
   else blblock = false;
   if (block->data % 8 >= 4) frblock = true;
   else frblock = false;
-  if (block->data >= 8) flblock = true;
+  if (block->data % 16 >= 8) flblock = true;
   else flblock = false;
+  if (block->data % 32 >= 16) rblock = true;
+  else rblock = false;
+  if (block->data >= 32) lblock = true;
+  else lblock = false;
 }
 
 int main(int argc, char** argv)
@@ -456,16 +462,16 @@ int main(int argc, char** argv)
           if (omniDirGoalThre > 0 && useSideAvoid) {
             if (vehicleYawRate < 0 && (blblock || frblock)) {
               cmd_vel.twist.angular.z = 0;
-              if (blblock && !brblock && !frblock) {
+              if (blblock && !rblock) {
                 cmd_vel.twist.linear.y = -maxSpeed / 2.0;
-              } else if (frblock && !blblock && !flblock) {
+              } else if (frblock && !lblock) {
                 cmd_vel.twist.linear.y = maxSpeed / 2.0;
               }
             } else if (vehicleYawRate > 0 && (brblock || flblock)) {
               cmd_vel.twist.angular.z = 0;
-              if (flblock && !brblock && !frblock) {
+              if (flblock && !rblock) {
                 cmd_vel.twist.linear.y = -maxSpeed / 2.0;
-              } else if (brblock && !blblock && !flblock) {
+              } else if (brblock && !lblock) {
                 cmd_vel.twist.linear.y = maxSpeed / 2.0;
               }
             }
