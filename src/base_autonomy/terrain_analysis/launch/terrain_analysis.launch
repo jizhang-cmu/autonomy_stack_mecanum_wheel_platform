@@ -19,12 +19,13 @@
     <param name="minOutOfFovPointNum" value="10" />
     <param name="obstacleHeightThre" value="0.1" />
     <param name="nearObstacle" value="true" />
-    <param name="nearObstacleDis" value="1.25" />
-    <param name="nearObstacleRelZThre" value="-0.2" />
-    <param name="negObstacle" value="false" />
+    <param name="nearObstacleDis" value="0.75" />
+    <param name="nearObstacleRelZThre" value="-0.3" />
+    <param name="negObstacle" value="-1" /> <!--'-1': off, '0': wrt ground height, '1': wrt sensor height /-->
+    <param name="negObstacleDis" value="10.0" />
     <param name="negObstacleRelZThre" value="-0.2" />
     <param name="noDataObstacle" value="false" />
-    <param name="noDataBlockSkipNum" value="1" />
+    <param name="noDataBlockSkipNum" value="0" />
     <param name="minBlockPointNum" value="10" />
     <param name="vehicleHeight" value="1.5" />
     <param name="voxelPointUpdateThre" value="100" />
