@@ -761,7 +761,7 @@ int main(int argc, char** argv)
         }
       }
 
-      int brCount = 0, blCount = 0, frCount = 0, flCount = 0;
+      int brCount = 0, blCount = 0, frCount = 0, flCount = 0, rCount = 0, lCount = 0;
       int plannerCloudCropSize = plannerCloudCrop->points.size();
       for (int i = 0; i < plannerCloudCropSize; i++) {
         float x = plannerCloudCrop->points[i].x;
@@ -773,6 +773,8 @@ int main(int argc, char** argv)
           if (x > -vehicleLength / 2.0 && x < -vehicleLengthSlot && y > vehicleWidth / 2.0 && y < vehicleWidth / 2.0 + vehicleWidthMargin) blCount++;
           if (x > vehicleLengthSlot && x < vehicleLength / 2.0 && y > -vehicleWidth / 2.0 - vehicleWidthMargin && y < -vehicleWidth / 2.0) frCount++;
           if (x > vehicleLengthSlot && x < vehicleLength / 2.0 && y > vehicleWidth / 2.0 && y < vehicleWidth / 2.0 + vehicleWidthMargin) flCount++;
+          if (x > -vehicleLength / 2.0 && x < vehicleLength / 2.0 && y > -vehicleWidth / 2.0 - vehicleWidthMargin && y < -vehicleWidth / 2.0) rCount++;
+          if (x > -vehicleLength / 2.0 && x < vehicleLength / 2.0 && y > vehicleWidth / 2.0 && y < vehicleWidth / 2.0 + vehicleWidthMargin) lCount++;
         }
       }
 
@@ -781,6 +783,8 @@ int main(int argc, char** argv)
       if (blCount >= surPointThre) block.data += 2;
       if (frCount >= surPointThre) block.data += 4;
       if (flCount >= surPointThre) block.data += 8;
+      if (rCount >= surPointThre) block.data += 16;
+      if (lCount >= surPointThre) block.data += 32;
       pubSurBlock->publish(block);
 
       float pathRange = adjacentRange;
