@@ -52,9 +52,10 @@ int minDyObsPointNum = 1;
 int minOutOfFovPointNum = 2;
 double obstacleHeightThre = 0.2;
 bool nearObstacle = true;
-double nearObstacleDis = 1.25;
-double nearObstacleRelZThre = -0.2;
-bool negObstacle = false;
+double nearObstacleDis = 0.75;
+double nearObstacleRelZThre = -0.3;
+int negObstacle = -1;
+double negObstacleDis = 10.0;
 double negObstacleRelZThre = -0.2;
 bool noDataObstacle = false;
 int noDataBlockSkipNum = 0;
@@ -227,7 +228,8 @@ int main(int argc, char **argv) {
   nh->declare_parameter<bool>("nearObstacle", nearObstacle);
   nh->declare_parameter<double>("nearObstacleDis", nearObstacleDis);
   nh->declare_parameter<double>("nearObstacleRelZThre", nearObstacleRelZThre);
-  nh->declare_parameter<bool>("negObstacle", negObstacle);
+  nh->declare_parameter<int>("negObstacle", negObstacle);
+  nh->declare_parameter<double>("negObstacleDis", negObstacleDis);
   nh->declare_parameter<double>("negObstacleRelZThre", negObstacleRelZThre);
   nh->declare_parameter<bool>("noDataObstacle", noDataObstacle);
   nh->declare_parameter<int>("noDataBlockSkipNum", noDataBlockSkipNum);
@@ -260,6 +262,7 @@ int main(int argc, char **argv) {
   nh->get_parameter("nearObstacleDis", nearObstacleDis);
   nh->get_parameter("nearObstacleRelZThre", nearObstacleRelZThre);
   nh->get_parameter("negObstacle", negObstacle);
+  nh->get_parameter("negObstacleDis", negObstacleDis);
   nh->get_parameter("negObstacleRelZThre", negObstacleRelZThre);
   nh->get_parameter("noDataObstacle", noDataObstacle);
   nh->get_parameter("noDataBlockSkipNum", noDataBlockSkipNum);
@@ -568,15 +571,14 @@ int main(int argc, char **argv) {
             if (dyObsPointNum < minDyObsPointNum || !clearDyObs) {
               float disZ = point.z - planarVoxelElev[planarVoxelWidth * indX + indY];
 
-              if (nearObstacle) {
-                float pointX = point.x - vehicleX;
-                float pointY = point.y - vehicleY;
-                float pointZ = point.z - vehicleZ;
-                float pointXY = sqrt(pointX * pointX + pointY * pointY);
-                if (pointXY < nearObstacleDis && pointZ > nearObstacleRelZThre) disZ = vehicleHeight;
-              }
+              float pointX = point.x - vehicleX;
+              float pointY = point.y - vehicleY;
+              float pointZ = point.z - vehicleZ;
+              float pointXY = sqrt(pointX * pointX + pointY * pointY);
 
-              if (disZ < negObstacleRelZThre && negObstacle) disZ = vehicleHeight;
+              if (pointXY < nearObstacleDis && pointZ > nearObstacleRelZThre && nearObstacle) disZ = vehicleHeight;
+              if (pointXY < negObstacleDis && ((disZ < negObstacleRelZThre && negObstacle == 0) || 
+                  (pointZ < negObstacleRelZThre && negObstacle == 1))) disZ = vehicleHeight;
               if (considerDrop) disZ = fabs(disZ);
 
               int planarPointElevSize = planarPointElev[planarVoxelWidth * indX + indY].size();
