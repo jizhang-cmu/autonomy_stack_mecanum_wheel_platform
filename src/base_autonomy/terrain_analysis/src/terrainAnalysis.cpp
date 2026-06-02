@@ -58,7 +58,8 @@ int negObstacle = -1;
 double negObstacleDis = 10.0;
 double negObstacleRelZThre = -0.2;
 bool noDataObstacle = false;
-int noDataBlockSkipNum = 0;
+int noDataBlockShrinkNum = 0;
+int noDataBlockExpandNum = 0;
 int minBlockPointNum = 10;
 double vehicleHeight = 1.5;
 int voxelPointUpdateThre = 100;
@@ -97,6 +98,7 @@ int terrainVoxelUpdateNum[terrainVoxelNum] = {0};
 float terrainVoxelUpdateTime[terrainVoxelNum] = {0};
 float planarVoxelElev[planarVoxelNum] = {0};
 int planarVoxelEdge[planarVoxelNum] = {0};
+int planarVoxelExp[planarVoxelNum] = {0};
 int planarVoxelDyObs[planarVoxelNum] = {0};
 int planarVoxelOutOfFov[planarVoxelNum] = {0};
 vector<float> planarPointElev[planarVoxelNum];
@@ -232,7 +234,8 @@ int main(int argc, char **argv) {
   nh->declare_parameter<double>("negObstacleDis", negObstacleDis);
   nh->declare_parameter<double>("negObstacleRelZThre", negObstacleRelZThre);
   nh->declare_parameter<bool>("noDataObstacle", noDataObstacle);
-  nh->declare_parameter<int>("noDataBlockSkipNum", noDataBlockSkipNum);
+  nh->declare_parameter<int>("noDataBlockShrinkNum", noDataBlockShrinkNum);
+  nh->declare_parameter<int>("noDataBlockExpandNum", noDataBlockExpandNum);
   nh->declare_parameter<int>("minBlockPointNum", minBlockPointNum);
   nh->declare_parameter<double>("vehicleHeight", vehicleHeight);
   nh->declare_parameter<int>("voxelPointUpdateThre", voxelPointUpdateThre);
@@ -265,7 +268,8 @@ int main(int argc, char **argv) {
   nh->get_parameter("negObstacleDis", negObstacleDis);
   nh->get_parameter("negObstacleRelZThre", negObstacleRelZThre);
   nh->get_parameter("noDataObstacle", noDataObstacle);
-  nh->get_parameter("noDataBlockSkipNum", noDataBlockSkipNum);
+  nh->get_parameter("noDataBlockShrinkNum", noDataBlockShrinkNum);
+  nh->get_parameter("noDataBlockExpandNum", noDataBlockExpandNum);
   nh->get_parameter("minBlockPointNum", minBlockPointNum);
   nh->get_parameter("vehicleHeight", vehicleHeight);
   nh->get_parameter("voxelPointUpdateThre", voxelPointUpdateThre);
@@ -424,6 +428,7 @@ int main(int argc, char **argv) {
       for (int i = 0; i < planarVoxelNum; i++) {
         planarVoxelElev[i] = 0;
         planarVoxelEdge[i] = 0;
+        planarVoxelExp[i] = 0;
         planarVoxelDyObs[i] = 0;
         planarVoxelOutOfFov[i] = 0;
         planarPointElev[i].clear();
@@ -604,7 +609,7 @@ int main(int argc, char **argv) {
           }
         }
 
-        for (int noDataBlockSkipCount = 0; noDataBlockSkipCount < noDataBlockSkipNum; noDataBlockSkipCount++) {
+        for (int noDataBlockShrinkCount = 0; noDataBlockShrinkCount < noDataBlockShrinkNum; noDataBlockShrinkCount++) {
           for (int i = 0; i < planarVoxelNum; i++) {
             if (planarVoxelEdge[i] >= 1) {
               int indX = int(i / planarVoxelWidth);
@@ -626,7 +631,22 @@ int main(int argc, char **argv) {
         }
 
         for (int i = 0; i < planarVoxelNum; i++) {
-          if (planarVoxelEdge[i] > noDataBlockSkipNum) {
+          if (planarVoxelEdge[i] > noDataBlockShrinkNum) {
+            int indX = int(i / planarVoxelWidth);
+            int indY = i % planarVoxelWidth;
+            for (int dX = -noDataBlockExpandNum; dX <= noDataBlockExpandNum; dX++) {
+              for (int dY = -noDataBlockExpandNum; dY <= noDataBlockExpandNum; dY++) {
+                if (indX + dX >= 0 && indX + dX < planarVoxelWidth &&
+                    indY + dY >= 0 && indY + dY < planarVoxelWidth) {
+                  planarVoxelExp[planarVoxelWidth * (indX + dX) + indY + dY] = 1;
+                }
+              }
+            }
+          }
+        }
+
+        for (int i = 0; i < planarVoxelNum; i++) {
+          if (planarVoxelExp[i] > 0) {
             int indX = int(i / planarVoxelWidth);
             int indY = i % planarVoxelWidth;
 
