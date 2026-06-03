@@ -18,10 +18,11 @@
     <param name="pathFolder" value="$(find-pkg-share local_planner)/paths" />
     <param name="vehicleLength" value="0.4" />
     <param name="vehicleWidth" value="0.4" />
-    <param name="vehicleLengthSlot" value="0.1" />
-    <param name="vehicleWidthMargin" value="0.1" />
     <param name="sensorOffsetX" value="$(var sensorOffsetX)" />
     <param name="sensorOffsetY" value="$(var sensorOffsetY)" />
+    <param name="vehicleLengthSlot" value="0.05" />
+    <param name="vehicleWidthMargin" value="0.1" />
+    <param name="marginYawRateRatio" value="0.0" />
     <param name="twoWayDrive" value="true" />
     <param name="laserVoxelSize" value="0.05" />
     <param name="terrainVoxelSize" value="0.2" />

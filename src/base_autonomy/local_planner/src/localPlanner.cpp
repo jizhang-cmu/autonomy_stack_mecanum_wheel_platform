@@ -47,10 +47,11 @@ const double PI = 3.1415926;
 string pathFolder;
 double vehicleLength = 0.6;
 double vehicleWidth = 0.6;
-double vehicleLengthSlot = 0.1;
-double vehicleWidthMargin = 0.1;
 double sensorOffsetX = 0;
 double sensorOffsetY = 0;
+double vehicleLengthSlot = 0.05;
+double vehicleWidthMargin = 0.1;
+double marginYawRateRatio = 0;
 bool twoWayDrive = true;
 double laserVoxelSize = 0.05;
 double terrainVoxelSize = 0.2;
@@ -143,7 +144,7 @@ bool newTerrainCloud = false;
 double odomTime = 0;
 double joyTime = 0;
 
-float vehicleRoll = 0, vehiclePitch = 0, vehicleYaw = 0;
+float vehicleRoll = 0, vehiclePitch = 0, vehicleYaw = 0, vehicleYawRate = 0;
 float vehicleX = 0, vehicleY = 0, vehicleZ = 0;
 
 pcl::VoxelGrid<pcl::PointXYZI> laserDwzFilter, terrainDwzFilter;
@@ -159,6 +160,7 @@ void odometryHandler(const nav_msgs::msg::Odometry::ConstSharedPtr odom)
   vehicleRoll = roll;
   vehiclePitch = pitch;
   vehicleYaw = yaw;
+  vehicleYawRate = odom->twist.twist.angular.z;
   vehicleX = odom->pose.pose.position.x - cos(yaw) * sensorOffsetX + sin(yaw) * sensorOffsetY;
   vehicleY = odom->pose.pose.position.y - sin(yaw) * sensorOffsetX - cos(yaw) * sensorOffsetY;
   vehicleZ = odom->pose.pose.position.z;
@@ -519,10 +521,11 @@ int main(int argc, char** argv)
   nh->declare_parameter<std::string>("pathFolder", pathFolder);
   nh->declare_parameter<double>("vehicleLength", vehicleLength);
   nh->declare_parameter<double>("vehicleWidth", vehicleWidth);
-  nh->declare_parameter<double>("vehicleLengthSlot", vehicleLengthSlot);
-  nh->declare_parameter<double>("vehicleWidthMargin", vehicleWidthMargin);
   nh->declare_parameter<double>("sensorOffsetX", sensorOffsetX);
   nh->declare_parameter<double>("sensorOffsetY", sensorOffsetY);
+  nh->declare_parameter<double>("vehicleLengthSlot", vehicleLengthSlot);
+  nh->declare_parameter<double>("vehicleWidthMargin", vehicleWidthMargin);
+  nh->declare_parameter<double>("marginYawRateRatio", marginYawRateRatio);
   nh->declare_parameter<bool>("twoWayDrive", twoWayDrive);
   nh->declare_parameter<double>("laserVoxelSize", laserVoxelSize);
   nh->declare_parameter<double>("terrainVoxelSize", terrainVoxelSize);
@@ -568,10 +571,11 @@ int main(int argc, char** argv)
   nh->get_parameter("pathFolder", pathFolder);
   nh->get_parameter("vehicleLength", vehicleLength);
   nh->get_parameter("vehicleWidth", vehicleWidth);
-  nh->get_parameter("vehicleLengthSlot", vehicleLengthSlot);
-  nh->get_parameter("vehicleWidthMargin", vehicleWidthMargin);
   nh->get_parameter("sensorOffsetX", sensorOffsetX);
   nh->get_parameter("sensorOffsetY", sensorOffsetY);
+  nh->get_parameter("vehicleLengthSlot", vehicleLengthSlot);
+  nh->get_parameter("vehicleWidthMargin", vehicleWidthMargin);
+  nh->get_parameter("marginYawRateRatio", marginYawRateRatio);
   nh->get_parameter("twoWayDrive", twoWayDrive);
   nh->get_parameter("laserVoxelSize", laserVoxelSize);
   nh->get_parameter("terrainVoxelSize", terrainVoxelSize);
@@ -768,11 +772,16 @@ int main(int argc, char** argv)
         float y = plannerCloudCrop->points[i].y;
         float h = plannerCloudCrop->points[i].intensity;
 
+        float margin = fabs(marginYawRateRatio * x * vehicleYawRate);
+        float marginCW = 0, marginCCW = 0;
+        if (vehicleYawRate < 0) marginCW = margin;
+        else marginCCW = margin;
+
         if (h > obstacleHeightThre || !useTerrainAnalysis) {
-          if (x > -vehicleLength / 2.0 && x < -vehicleLengthSlot && y > -vehicleWidth / 2.0 - vehicleWidthMargin && y < -vehicleWidth / 2.0) brCount++;
-          if (x > -vehicleLength / 2.0 && x < -vehicleLengthSlot && y > vehicleWidth / 2.0 && y < vehicleWidth / 2.0 + vehicleWidthMargin) blCount++;
-          if (x > vehicleLengthSlot && x < vehicleLength / 2.0 && y > -vehicleWidth / 2.0 - vehicleWidthMargin && y < -vehicleWidth / 2.0) frCount++;
-          if (x > vehicleLengthSlot && x < vehicleLength / 2.0 && y > vehicleWidth / 2.0 && y < vehicleWidth / 2.0 + vehicleWidthMargin) flCount++;
+          if (x > -vehicleLength / 2.0 && x < -vehicleLengthSlot && y > -vehicleWidth / 2.0 - vehicleWidthMargin - marginCCW && y < -vehicleWidth / 2.0) brCount++;
+          if (x > -vehicleLength / 2.0 && x < -vehicleLengthSlot && y > vehicleWidth / 2.0 && y < vehicleWidth / 2.0 + vehicleWidthMargin + marginCW) blCount++;
+          if (x > vehicleLengthSlot && x < vehicleLength / 2.0 && y > -vehicleWidth / 2.0 - vehicleWidthMargin - marginCW && y < -vehicleWidth / 2.0) frCount++;
+          if (x > vehicleLengthSlot && x < vehicleLength / 2.0 && y > vehicleWidth / 2.0 && y < vehicleWidth / 2.0 + vehicleWidthMargin + marginCCW) flCount++;
           if (x > -vehicleLength / 2.0 && x < vehicleLength / 2.0 && y > -vehicleWidth / 2.0 - vehicleWidthMargin && y < -vehicleWidth / 2.0) rCount++;
           if (x > -vehicleLength / 2.0 && x < vehicleLength / 2.0 && y > vehicleWidth / 2.0 && y < vehicleWidth / 2.0 + vehicleWidthMargin) lCount++;
         }
