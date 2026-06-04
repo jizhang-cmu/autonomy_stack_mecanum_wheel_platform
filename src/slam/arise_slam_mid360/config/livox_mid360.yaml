@@ -20,6 +20,9 @@ feature_extraction_node:
         sensor: "livox"
         mapping_skip_frame: 1
         lidar_flip: false
+        auto_leveling: true
+        lidar_roll: 0.0
+        lidar_pitch: 0.35
         blindFront: 0.1
         blindBack: -0.2
         blindLeft: 0.1
@@ -117,6 +120,10 @@ imu_preintegration_node:
         g_norm: 9.80511    # 0 means you need to provide both imu-camera and laser-camera extrinsic
         use_imu_roll_pitch: false
         lidar_flip: false
+        auto_leveling: true
+        lidar_roll: 0.0
+        lidar_pitch: 0.35
+
         imu_acc_x_offset: 0.0
         imu_acc_y_offset: 0.0
         imu_acc_z_offset: 0.0
