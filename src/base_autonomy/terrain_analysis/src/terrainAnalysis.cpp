@@ -43,6 +43,7 @@ bool considerDrop = false;
 bool limitGroundLift = false;
 double maxGroundLift = 0.15;
 bool clearDyObs = false;
+double sensorPitch = 0;
 double minDyObsDis = 0.3;
 double absDyObsRelZThre = 0.2;
 double minDyObsVFOV = -16.0;
@@ -116,6 +117,7 @@ float vehicleXRec = 0, vehicleYRec = 0;
 float sinVehicleRoll = 0, cosVehicleRoll = 0;
 float sinVehiclePitch = 0, cosVehiclePitch = 0;
 float sinVehicleYaw = 0, cosVehicleYaw = 0;
+float sinSensorPitch = 0, cosSensorPitch = 0;
 
 pcl::VoxelGrid<pcl::PointXYZI> downSizeFilter;
 
@@ -219,6 +221,7 @@ int main(int argc, char **argv) {
   nh->declare_parameter<bool>("limitGroundLift", limitGroundLift);
   nh->declare_parameter<double>("maxGroundLift", maxGroundLift);
   nh->declare_parameter<bool>("clearDyObs", clearDyObs);
+  nh->declare_parameter<double>("sensorPitch", sensorPitch);
   nh->declare_parameter<double>("minDyObsDis", minDyObsDis);
   nh->declare_parameter<double>("absDyObsRelZThre", absDyObsRelZThre);
   nh->declare_parameter<double>("minDyObsVFOV", minDyObsVFOV);
@@ -253,6 +256,7 @@ int main(int argc, char **argv) {
   nh->get_parameter("limitGroundLift", limitGroundLift);
   nh->get_parameter("maxGroundLift", maxGroundLift);
   nh->get_parameter("clearDyObs", clearDyObs);
+  nh->get_parameter("sensorPitch", sensorPitch);
   nh->get_parameter("minDyObsDis", minDyObsDis);
   nh->get_parameter("absDyObsRelZThre", absDyObsRelZThre);
   nh->get_parameter("minDyObsVFOV", minDyObsVFOV);
@@ -292,6 +296,9 @@ int main(int argc, char **argv) {
   }
 
   downSizeFilter.setLeafSize(scanVoxelSize, scanVoxelSize, scanVoxelSize);
+
+  sinSensorPitch = sin(sensorPitch * PI / 180.0);
+  cosSensorPitch = cos(sensorPitch * PI / 180.0);
 
   rclcpp::Rate rate(100);
   bool status = rclcpp::ok();
@@ -448,8 +455,7 @@ int main(int argc, char **argv) {
             for (int dY = -1; dY <= 1; dY++) {
               if (indX + dX >= 0 && indX + dX < planarVoxelWidth &&
                   indY + dY >= 0 && indY + dY < planarVoxelWidth) {
-                planarPointElev[planarVoxelWidth * (indX + dX) + indY + dY]
-                    .push_back(point.z);
+                planarPointElev[planarVoxelWidth * (indX + dX) + indY + dY].push_back(point.z);
               }
             }
           }
@@ -525,11 +531,15 @@ int main(int argc, char **argv) {
                 float pointY4 = pointY3 * cosVehicleRoll + pointZ3 * sinVehicleRoll;
                 float pointZ4 = -pointY3 * sinVehicleRoll + pointZ3 * cosVehicleRoll;
 
-                float dis4 = sqrt(pointX4 * pointX4 + pointY4 * pointY4);
-                float angle4 = atan2(pointZ4, dis4) * 180.0 / PI;
-                if ((angle4 > minDyObsVFOV && angle4 < maxDyObsVFOV) || fabs(pointZ4) < absDyObsRelZThre) {
+                float pointX5 = pointX4 * cosSensorPitch - pointZ4 * sinSensorPitch;
+                float pointY5 = pointY4;
+                float pointZ5 = pointX4 * sinSensorPitch + pointZ4 * cosSensorPitch;
+
+                float dis5 = sqrt(pointX5 * pointX5 + pointY5 * pointY5);
+                float angle5 = atan2(pointZ5, dis5) * 180.0 / PI;
+                if ((angle5 > minDyObsVFOV && angle5 < maxDyObsVFOV) || fabs(pointZ5) < absDyObsRelZThre) {
                   planarVoxelDyObs[planarVoxelWidth * indX + indY]++;
-                } else if (angle4 <= minDyObsVFOV) {
+                } else if (angle5 <= minDyObsVFOV) {
                   planarVoxelOutOfFov[planarVoxelWidth * indX + indY]++;
                 }
               }
@@ -548,8 +558,7 @@ int main(int argc, char **argv) {
           if (point.x - vehicleX + planarVoxelSize / 2 < 0) indX--;
           if (point.y - vehicleY + planarVoxelSize / 2 < 0) indY--;
 
-          if (indX >= 0 && indX < planarVoxelWidth && indY >= 0 &&
-              indY < planarVoxelWidth) {
+          if (indX >= 0 && indX < planarVoxelWidth && indY >= 0 && indY < planarVoxelWidth) {
             float h1 = point.z - planarVoxelElev[planarVoxelWidth * indX + indY];
             if (h1 > obstacleHeightThre) {
               planarVoxelDyObs[planarVoxelWidth * indX + indY] = -1;

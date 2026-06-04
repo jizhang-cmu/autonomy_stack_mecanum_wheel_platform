@@ -11,10 +11,11 @@
     <param name="limitGroundLift" value="false" />
     <param name="maxGroundLift" value="0.15" />
     <param name="clearDyObs" value="true" />
+    <param name="sensorPitch" value="20.0" />
     <param name="minDyObsDis" value="0.14" />
     <param name="absDyObsRelZThre" value="0.2" />
-    <param name="minDyObsVFOV" value="-30.0" />
-    <param name="maxDyObsVFOV" value="35.0" />
+    <param name="minDyObsVFOV" value="-10.0" />
+    <param name="maxDyObsVFOV" value="55.0" />
     <param name="minDyObsPointNum" value="1" />
     <param name="minOutOfFovPointNum" value="10" />
     <param name="obstacleHeightThre" value="0.1" />
