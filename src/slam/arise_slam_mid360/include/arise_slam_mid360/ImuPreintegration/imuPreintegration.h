@@ -56,6 +56,9 @@ namespace arise_slam {
         bool  use_imu_roll_pitch;
         bool lidar_flip;
         SensorType sensor;
+        bool auto_leveling;
+        double lidar_roll;
+        double lidar_pitch;
 
         double imu_acc_x_offset;
         double imu_acc_y_offset;

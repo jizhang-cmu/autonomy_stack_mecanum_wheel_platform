@@ -83,6 +83,9 @@ namespace arise_slam {
         bounds_t box_size;
         int skipFrame;
         bool lidar_flip;
+        bool auto_leveling;
+        double lidar_roll;
+        double lidar_pitch;
         int N_SCANS;
         int provide_point_time;
         int point_filter_num;
