@@ -69,6 +69,10 @@ double minRelZ = -1.5;
 double maxRelZ = 0.2;
 double disRatioZ = 0.2;
 
+//  laser cloud array for dyObs checking
+int laserCloudArrayID = -1;
+const int laserCloudArrayNum = 3;
+
 // terrain voxel parameters
 float terrainVoxelSize = 1.0;
 int terrainVoxelShiftX = 0;
@@ -83,16 +87,13 @@ const int planarVoxelWidth = 51;
 int planarVoxelHalfWidth = (planarVoxelWidth - 1) / 2;
 const int planarVoxelNum = planarVoxelWidth * planarVoxelWidth;
 
-pcl::PointCloud<pcl::PointXYZI>::Ptr
-    laserCloud(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr
-    laserCloudCrop(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr
-    laserCloudDwz(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr
-    terrainCloud(new pcl::PointCloud<pcl::PointXYZI>());
-pcl::PointCloud<pcl::PointXYZI>::Ptr
-    terrainCloudElev(new pcl::PointCloud<pcl::PointXYZI>());
+pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloud(new pcl::PointCloud<pcl::PointXYZI>());
+pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloudCrop(new pcl::PointCloud<pcl::PointXYZI>());
+pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloudStack(new pcl::PointCloud<pcl::PointXYZI>());
+pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloudArray[laserCloudArrayNum];
+pcl::PointCloud<pcl::PointXYZI>::Ptr laserCloudDwz(new pcl::PointCloud<pcl::PointXYZI>());
+pcl::PointCloud<pcl::PointXYZI>::Ptr terrainCloud(new pcl::PointCloud<pcl::PointXYZI>());
+pcl::PointCloud<pcl::PointXYZI>::Ptr terrainCloudElev(new pcl::PointCloud<pcl::PointXYZI>());
 pcl::PointCloud<pcl::PointXYZI>::Ptr terrainVoxelCloud[terrainVoxelNum];
 
 int terrainVoxelUpdateNum[terrainVoxelNum] = {0};
@@ -189,6 +190,10 @@ void laserCloudHandler(const sensor_msgs::msg::PointCloud2::ConstSharedPtr laser
       laserCloudCrop->push_back(point);
     }
   }
+
+  laserCloudArrayID = (laserCloudArrayID + 1) % laserCloudArrayNum;
+  laserCloudArray[laserCloudArrayID]->clear();
+  *laserCloudArray[laserCloudArrayID] = *laserCloudCrop;
 
   newlaserCloud = true;
 }
@@ -292,6 +297,9 @@ int main(int argc, char **argv) {
 
   auto pubLaserCloud = nh->create_publisher<sensor_msgs::msg::PointCloud2>("/terrain_map", 2);
 
+  for (int i = 0; i < laserCloudArrayNum; i++) {
+    laserCloudArray[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
+  }
   for (int i = 0; i < terrainVoxelNum; i++) {
     terrainVoxelCloud[i].reset(new pcl::PointCloud<pcl::PointXYZI>());
   }
@@ -315,8 +323,7 @@ int main(int argc, char **argv) {
       while (vehicleX - terrainVoxelCenX < -terrainVoxelSize) {
         for (int indY = 0; indY < terrainVoxelWidth; indY++) {
           pcl::PointCloud<pcl::PointXYZI>::Ptr terrainVoxelCloudPtr =
-              terrainVoxelCloud[terrainVoxelWidth * (terrainVoxelWidth - 1) +
-                                indY];
+              terrainVoxelCloud[terrainVoxelWidth * (terrainVoxelWidth - 1) + indY];
           for (int indX = terrainVoxelWidth - 1; indX >= 1; indX--) {
             terrainVoxelCloud[terrainVoxelWidth * indX + indY] =
                 terrainVoxelCloud[terrainVoxelWidth * (indX - 1) + indY];
@@ -330,8 +337,7 @@ int main(int argc, char **argv) {
 
       while (vehicleX - terrainVoxelCenX > terrainVoxelSize) {
         for (int indY = 0; indY < terrainVoxelWidth; indY++) {
-          pcl::PointCloud<pcl::PointXYZI>::Ptr terrainVoxelCloudPtr =
-              terrainVoxelCloud[indY];
+          pcl::PointCloud<pcl::PointXYZI>::Ptr terrainVoxelCloudPtr = terrainVoxelCloud[indY];
           for (int indX = 0; indX < terrainVoxelWidth - 1; indX++) {
             terrainVoxelCloud[terrainVoxelWidth * indX + indY] =
                 terrainVoxelCloud[terrainVoxelWidth * (indX + 1) + indY];
@@ -347,8 +353,7 @@ int main(int argc, char **argv) {
       while (vehicleY - terrainVoxelCenY < -terrainVoxelSize) {
         for (int indX = 0; indX < terrainVoxelWidth; indX++) {
           pcl::PointCloud<pcl::PointXYZI>::Ptr terrainVoxelCloudPtr =
-              terrainVoxelCloud[terrainVoxelWidth * indX +
-                                (terrainVoxelWidth - 1)];
+              terrainVoxelCloud[terrainVoxelWidth * indX + (terrainVoxelWidth - 1)];
           for (int indY = terrainVoxelWidth - 1; indY >= 1; indY--) {
             terrainVoxelCloud[terrainVoxelWidth * indX + indY] =
                 terrainVoxelCloud[terrainVoxelWidth * indX + (indY - 1)];
@@ -550,8 +555,14 @@ int main(int argc, char **argv) {
           }
         }
 
-        for (int i = 0; i < laserCloudCropSize; i++) {
-          point = laserCloudCrop->points[i];
+        laserCloudStack->clear();
+        for (int i = 0; i < laserCloudArrayNum; i++) {
+          *laserCloudStack += *laserCloudArray[i];
+        }
+        int laserCloudStackSize = laserCloudStack->points.size();
+
+        for (int i = 0; i < laserCloudStackSize; i++) {
+          point = laserCloudStack->points[i];
 
           int indX = int((point.x - vehicleX + planarVoxelSize / 2) / planarVoxelSize) + planarVoxelHalfWidth;
           int indY = int((point.y - vehicleY + planarVoxelSize / 2) / planarVoxelSize) + planarVoxelHalfWidth;
