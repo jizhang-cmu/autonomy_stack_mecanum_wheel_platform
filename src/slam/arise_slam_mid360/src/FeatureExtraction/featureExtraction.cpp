@@ -111,6 +111,9 @@ namespace arise_slam {
         pubEdgePoints = this->create_publisher<sensor_msgs::msg::PointCloud2>(
             ProjectName+"/edge_points", 2);
 
+        pubInitStateRollPitch = this->create_publisher<geometry_msgs::msg::Point>(
+            ProjectName+"/init_state_roll_pitch", 2);
+
         // pubDepthUpPoints = this->create_publisher<sensor_msgs::msg::PointCloud2>(
         //     ProjectName+"/depth_up_points", 1);
 
@@ -166,7 +169,7 @@ namespace arise_slam {
         this->declare_parameter<int>("scan_line");
         this->declare_parameter<int>("mapping_skip_frame");
         this->declare_parameter<bool>("lidar_flip");
-        this->declare_parameter<bool>("auto_leveling");
+        this->declare_parameter<bool>("fixed_lidar_roll_pitch");
         this->declare_parameter<double>("lidar_roll");
         this->declare_parameter<double>("lidar_pitch");
         this->declare_parameter<double>("blindFront");
@@ -197,7 +200,7 @@ namespace arise_slam {
         config_.N_SCANS = this->get_parameter("scan_line").as_int();
         config_.skipFrame = this->get_parameter("mapping_skip_frame").as_int();
         config_.lidar_flip = this->get_parameter("lidar_flip").as_bool();
-        config_.auto_leveling = this->get_parameter("auto_leveling").as_bool();
+        config_.fixed_lidar_roll_pitch = this->get_parameter("fixed_lidar_roll_pitch").as_bool();
         config_.lidar_roll = this->get_parameter("lidar_roll").as_double();
         config_.lidar_pitch = this->get_parameter("lidar_pitch").as_double();
         config_.box_size.blindFront = this->get_parameter("blindFront").as_double();
@@ -1333,12 +1336,18 @@ namespace arise_slam {
                     if (timestamp-first_time>200*m_imuPeriod and IMU_INIT==false)
                     {   
                         //TODO: IMUInit might be not necessary since it is only for accleration 
-                        imu_Init->auto_leveling = config_.auto_leveling;
+                        imu_Init->fixed_lidar_roll_pitch = config_.fixed_lidar_roll_pitch;
                         imu_Init->lidar_roll = config_.lidar_roll;
                         imu_Init->lidar_pitch = config_.lidar_pitch;
                         imu_Init->imuInit(imuBuf);
                         IMU_INIT=true;
                         imuBuf.clean(timestamp);
+                        
+                        geometry_msgs::msg::Point initStateRollPitch;
+                        initStateRollPitch.x = imu_Init->init_state_roll;
+                        initStateRollPitch.y = imu_Init->init_state_pitch;
+                        pubInitStateRollPitch->publish(initStateRollPitch);
+
                         std::cout<<"IMU Initialization Process Finish! "<<std::endl;
 
                     }

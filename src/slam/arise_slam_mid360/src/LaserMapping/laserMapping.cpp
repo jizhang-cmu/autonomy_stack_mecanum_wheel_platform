@@ -64,6 +64,10 @@ namespace arise_slam {
             std::bind(&laserMapping::visualOdometryHandler, this,
                         std::placeholders::_1), sub_options);
 
+        subInitStateRollPitch = this->create_subscription<geometry_msgs::msg::Point>(
+            ProjectName+"/init_state_roll_pitch", 2,
+            std::bind(&laserMapping::initStateRollPitchHandler, this,
+                        std::placeholders::_1), sub_options);
 
         pubLaserCloudSurround = this->create_publisher<sensor_msgs::msg::PointCloud2>(
             ProjectName+"/laser_cloud_surround", 2);
@@ -220,13 +224,14 @@ namespace arise_slam {
         this->declare_parameter<bool>("shift_undistortion", true);
         this->declare_parameter<std::string>("map_dir", "pointcloud_local.txt");
         this->declare_parameter<bool>("local_mode", false);
+        this->declare_parameter<bool>("read_pose_file", false);
+        this->declare_parameter<bool>("fixed_init_roll_pitch", false);
         this->declare_parameter<float>("init_x", 0.0);
         this->declare_parameter<float>("init_y", 0.0);
         this->declare_parameter<float>("init_z", 0.0);
         this->declare_parameter<float>("init_roll", 0.0);
         this->declare_parameter<float>("init_pitch", 0.0);
         this->declare_parameter<float>("init_yaw", 0.0);
-        this->declare_parameter<bool>("read_pose_file", false);
 
         config_.period = get_parameter("scanPeriod").as_double();
         config_.lineRes = get_parameter("mapping_line_resolution").as_double();
@@ -248,6 +253,7 @@ namespace arise_slam {
         config_.map_dir = get_parameter("map_dir").as_string(); 
         config_.local_mode = get_parameter("local_mode").as_bool();
         config_.read_pose_file = get_parameter("read_pose_file").as_bool();
+        config_.fixed_init_roll_pitch = get_parameter("fixed_init_roll_pitch").as_bool();
 
         if(config_.read_pose_file)
         {   
@@ -457,13 +463,18 @@ namespace arise_slam {
        mBuf.unlock();
     }
 
+    void laserMapping::initStateRollPitchHandler(const geometry_msgs::msg::Point::SharedPtr initStateRollPitch) {
+      initStateRoll = initStateRollPitch->x;
+      initStatePitch = initStateRollPitch->y;
+      initStateReceived = true;
+    }
+
     void laserMapping::setInitialGuess()
-    {
+    {                                     
         use_imu_roll_pitch_this_step=false;
 
         if (initialization == false)  {//directly hardset the imu rotation as the first pose
             use_imu_roll_pitch_this_step=true;
-
             if (use_imu_roll_pitch_this_step) {
                 double roll, pitch, yaw;
                 tf2::Quaternion orientation_curr(q_wodom_curr.x(), q_wodom_curr.y(), q_wodom_curr.z(), q_wodom_curr.w());
@@ -473,7 +484,7 @@ namespace arise_slam {
                 yaw_quat.setRPY(0, 0, - yaw); //make sure the yaw angle is zero at the beginning
                 RCLCPP_DEBUG(this->get_logger(), "Start roll, pitch, yaw %f, %f, %f", roll, pitch, yaw);
                 tf2::Quaternion first_orientation;
-                first_orientation = yaw_quat*orientation_curr;
+                first_orientation = yaw_quat * orientation_curr;
                 first_orientation = first_orientation;
                 q_w_curr = Eigen::Quaterniond(first_orientation.w(), first_orientation.x(), first_orientation.y(), first_orientation.z());
                 auto q_extrinsic=Eigen::Quaterniond(imu_laser_R);
@@ -494,9 +505,16 @@ namespace arise_slam {
                 } else {
                     T_w_lidar.pos=Eigen::Vector3d(0, 0, 0);
                 }
-                
-                tf2::Quaternion quat ;
-                quat.setRPY(slam.init_roll,slam.init_pitch, slam.init_yaw);
+
+                tf2::Quaternion quat;
+                if (config_.fixed_init_roll_pitch || !initStateReceived) {
+                    quat.setRPY(slam.init_roll, slam.init_pitch, slam.init_yaw);
+                    if (!config_.fixed_init_roll_pitch && !initStateReceived) {
+                        RCLCPP_DEBUG(this->get_logger(), "\033[1;32m  Init state roll/pitch not received, using fixed values \033[0m");
+                    }
+                } else {
+                    quat.setRPY(initStateRoll, initStatePitch, slam.init_yaw);
+                }
                 T_w_lidar.rot=Eigen::Quaterniond(quat.w(), quat.x(), quat.y(), quat.z());
                 slam.last_T_w_lidar=T_w_lidar;
 
@@ -513,8 +531,15 @@ namespace arise_slam {
                     T_w_lidar.pos=Eigen::Vector3d(0, 0, 0);
                 }
                 
-                tf2::Quaternion quat ;
-                quat.setRPY(slam.init_roll,slam.init_pitch, slam.init_yaw);
+                tf2::Quaternion quat;
+                if (config_.fixed_init_roll_pitch|| !initStateReceived) {
+                    quat.setRPY(slam.init_roll,slam.init_pitch, slam.init_yaw);
+                    if (!config_.fixed_init_roll_pitch && !initStateReceived) {
+                        RCLCPP_DEBUG(this->get_logger(), "\033[1;32m  Init state roll/pitch not received, using fixed values \033[0m");
+                    }
+                } else {
+                    quat.setRPY(initStateRoll, initStatePitch, slam.init_yaw);
+                }
                 T_w_lidar.rot=Eigen::Quaterniond(quat.w(), quat.x(), quat.y(), quat.z());
             }
         } else if (startupCount > 0) {// To use IMU orientation for a while for initialization

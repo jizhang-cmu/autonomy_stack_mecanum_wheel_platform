@@ -121,7 +121,7 @@ target_link_libraries(imu_preintegration_node
 
 # Feature Extraction node
 add_executable(feature_extraction_node src/featureExtraction_node.cpp)
-target_link_libraries(feature_extraction_node rclcpp::rclcpp nav_msgs::nav_msgs sensor_msgs::sensor_msgs arise_slam_mid360_msgs::arise_slam_mid360_msgs livox_ros_driver2::livox_ros_driver2)
+target_link_libraries(feature_extraction_node rclcpp::rclcpp nav_msgs::nav_msgs sensor_msgs::sensor_msgs geometry_msgs:geometry_msgs arise_slam_mid360_msgs::arise_slam_mid360_msgs livox_ros_driver2::livox_ros_driver2)
 target_link_libraries(feature_extraction_node
   ${PCL_LIBRARIES}
   ${TBB_LIBRARIES}
