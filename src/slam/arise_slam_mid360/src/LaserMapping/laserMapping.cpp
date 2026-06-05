@@ -475,6 +475,7 @@ namespace arise_slam {
 
         if (initialization == false)  {//directly hardset the imu rotation as the first pose
             use_imu_roll_pitch_this_step=true;
+
             if (use_imu_roll_pitch_this_step) {
                 double roll, pitch, yaw;
                 tf2::Quaternion orientation_curr(q_wodom_curr.x(), q_wodom_curr.y(), q_wodom_curr.z(), q_wodom_curr.w());
@@ -507,11 +508,8 @@ namespace arise_slam {
                 }
 
                 tf2::Quaternion quat;
-                if (config_.fixed_init_roll_pitch || !initStateReceived) {
+                if (config_.fixed_init_roll_pitch) {
                     quat.setRPY(slam.init_roll, slam.init_pitch, slam.init_yaw);
-                    if (!config_.fixed_init_roll_pitch && !initStateReceived) {
-                        RCLCPP_DEBUG(this->get_logger(), "\033[1;32m  Init state roll/pitch not received, using fixed values \033[0m");
-                    }
                 } else {
                     quat.setRPY(initStateRoll, initStatePitch, slam.init_yaw);
                 }
@@ -530,13 +528,10 @@ namespace arise_slam {
                 } else {
                     T_w_lidar.pos=Eigen::Vector3d(0, 0, 0);
                 }
-                
+
                 tf2::Quaternion quat;
-                if (config_.fixed_init_roll_pitch|| !initStateReceived) {
+                if (config_.fixed_init_roll_pitch) {
                     quat.setRPY(slam.init_roll,slam.init_pitch, slam.init_yaw);
-                    if (!config_.fixed_init_roll_pitch && !initStateReceived) {
-                        RCLCPP_DEBUG(this->get_logger(), "\033[1;32m  Init state roll/pitch not received, using fixed values \033[0m");
-                    }
                 } else {
                     quat.setRPY(initStateRoll, initStatePitch, slam.init_yaw);
                 }
@@ -1153,7 +1148,7 @@ namespace arise_slam {
     void laserMapping::process() {
         if (rclcpp::ok()) {
             while (!cornerLastBuf.empty() && !surfLastBuf.empty() &&
-                   !fullResBuf.empty()&& !IMUPredictionBuf.empty() ) {
+                   !fullResBuf.empty()&& !IMUPredictionBuf.empty() && initStateReceived) {
 
                 laser_imu_sync = false;
 
