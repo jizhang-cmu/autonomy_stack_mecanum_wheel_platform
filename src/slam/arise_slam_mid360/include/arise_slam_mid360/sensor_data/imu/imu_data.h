@@ -49,9 +49,14 @@ public:
       // Calculate the roll angle (phi)
       double phi = std::atan2(-ay, az);
 
-      if (!auto_leveling) {
+      if (fixed_lidar_roll_pitch) {
+        init_state_pitch = -theta - lidar_pitch;
+        init_state_roll = -phi - lidar_roll;
         theta = -lidar_pitch;
         phi = -lidar_roll;
+      } else {
+        init_state_roll = 0;
+        init_state_pitch = 0;
       }
 
       // Construct the pitch rotation matrix
@@ -136,9 +141,9 @@ public:
       std::cout<<"Gyroscope Bias: "<<gyr_bias.transpose()<<std::endl;
       std::cout<<"Accelerometer Bias: "<<acc_bias.transpose()<<std::endl;
       std::cout<<"Accelerometer Mean: "<<acc_mean.transpose()<<std::endl;
-      std::cout<<"Auto leveling: "<<auto_leveling<<std::endl;
-      std::cout<<"Lidar pitch: "<<pitch_offset_gravity<<std::endl;
-      std::cout<<"Lidar roll: "<<roll_offset_gravity<<std::endl;
+      std::cout<<"Fixed lidar roll/pitch: "<<fixed_lidar_roll_pitch<<std::endl;
+      std::cout<<"Lidar pitch: "<<-pitch_offset_gravity<<std::endl;
+      std::cout<<"Lidar roll: "<<-roll_offset_gravity<<std::endl;
       std::cout<<"Roll Pitch Matrix: "<<Roll_Pitch_Gravity_Matrix<<std::endl;
       
   }
@@ -185,9 +190,11 @@ public:
   Transformd imu_laser_gravity_Transform;
   double pitch_offset_gravity;
   double roll_offset_gravity;
-  bool auto_leveling;
+  bool fixed_lidar_roll_pitch;
   double lidar_roll;
   double lidar_pitch;
+  double init_state_roll;
+  double init_state_pitch;
 };
 
 #endif // IMU_DATA_H

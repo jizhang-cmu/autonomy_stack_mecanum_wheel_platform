@@ -23,6 +23,7 @@
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/common/transforms.h>
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/point.hpp>
 #include <nav_msgs/msg/odometry.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include "rclcpp/rclcpp.hpp"
@@ -66,13 +67,14 @@ namespace arise_slam {
         float yaw_ratio;
         std::string map_dir;
         bool local_mode;
+        bool read_pose_file;
+        bool fixed_init_roll_pitch;
         float init_x;
         float init_y;
         float init_z;
         float init_roll;
         float init_pitch;
         float init_yaw;
-        float read_pose_file;
     };
     
     struct OdometryData {
@@ -135,6 +137,9 @@ namespace arise_slam {
 
         void
         visualOdometryHandler(const nav_msgs::msg::Odometry::SharedPtr visualOdometry);
+        
+        void
+        initStateRollPitchHandler(const geometry_msgs::msg::Point::SharedPtr initStateRollPitch);
 
         // void 
         // takeoffAlignmentHandler(const takeoff_manager::TakeoffAlignmentConstPtr &msg);
@@ -207,6 +212,7 @@ namespace arise_slam {
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subLaserCloudSurfLast;
         rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subIMUOdometry;
         rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr subVisualOdometry;
+        rclcpp::Subscription<geometry_msgs::msg::Point>::SharedPtr subInitStateRollPitch;
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subLaserCloudFullRes;
         rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr subLaserRawdata;
         rclcpp::Subscription<arise_slam_mid360_msgs::msg::LaserFeature>::SharedPtr subLaserFeatureInfo;
@@ -273,6 +279,10 @@ namespace arise_slam {
         float shiftX = 0;
         float shiftY = 0;
         float shiftZ = 0;
+        
+        bool initStateReceived = false;
+        float initStateRoll = 0;
+        float initStatePitch = 0;
 
         pcl::VoxelGrid<PointType> downSizeFilterCorner;
         pcl::VoxelGrid<PointType> downSizeFilterSurf;

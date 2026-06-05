@@ -23,6 +23,7 @@
 #include <pcl/filters/filter.h>
 
 #include "rclcpp/rclcpp.hpp"
+#include <geometry_msgs/msg/point.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <nav_msgs/msg/odometry.hpp>
@@ -83,7 +84,7 @@ namespace arise_slam {
         bounds_t box_size;
         int skipFrame;
         bool lidar_flip;
-        bool auto_leveling;
+        bool fixed_lidar_roll_pitch;
         double lidar_roll;
         double lidar_pitch;
         int N_SCANS;
@@ -228,6 +229,7 @@ namespace arise_slam {
         rclcpp::Publisher<arise_slam_mid360_msgs::msg::LaserFeature>::SharedPtr pubLaserFeatureInfo;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubDepthUpPoints;
         rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr pubDepthDownPoints;
+        rclcpp::Publisher<geometry_msgs::msg::Point>::SharedPtr pubInitStateRollPitch;
         std::vector<rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr> pubEachScan;
 
         rclcpp::CallbackGroup::SharedPtr cb_group_;
