@@ -50,6 +50,9 @@ public:
       double phi = std::atan2(-ay, az);
 
       if (fixed_lidar_roll_pitch) {
+        if (phi + lidar_roll < -M_PI / 2) lidar_roll += M_PI;
+        else if (phi + lidar_roll > M_PI / 2) lidar_roll -= M_PI;
+
         init_state_pitch = -theta - lidar_pitch;
         init_state_roll = -phi - lidar_roll;
         theta = -lidar_pitch;
