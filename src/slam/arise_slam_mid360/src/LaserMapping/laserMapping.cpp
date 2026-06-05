@@ -461,13 +461,10 @@ namespace arise_slam {
     {
         use_imu_roll_pitch_this_step=false;
 
-        if (initialization == false)  //directly hardset the imu rotation as the first pose
-        {
+        if (initialization == false)  {//directly hardset the imu rotation as the first pose
             use_imu_roll_pitch_this_step=true;
 
-            if(use_imu_roll_pitch_this_step)
-            {
-                
+            if(use_imu_roll_pitch_this_step) {
                 double roll, pitch, yaw;
                 tf2::Quaternion orientation_curr(q_wodom_curr.x(), q_wodom_curr.y(), q_wodom_curr.z(), q_wodom_curr.w());
                 tf2::Matrix3x3(orientation_curr).getRPY(roll, pitch, yaw);
@@ -490,40 +487,37 @@ namespace arise_slam {
                 q_wodom_pre = q_w_curr;
                 T_w_lidar.rot=q_w_curr;
                 
-                if(slam.local_mode)
-                {
-                    
-                T_w_lidar.pos=Eigen::Vector3d(slam.init_x, slam.init_y, slam.init_z);
+                if(slam.local_mode) {
+                    T_w_lidar.pos=Eigen::Vector3d(slam.init_x, slam.init_y, slam.init_z);
+                    RCLCPP_DEBUG(this->get_logger(), "\033[1;32m  Localization Mode: x: %f y: %f z: %f roll: %f pitch: %f yaw:%f \033[0m",
+                                 slam.init_x,slam.init_y,slam.init_z,slam.init_roll, slam.init_pitch, slam.init_yaw);
+                } else {
+                    T_w_lidar.pos=Eigen::Vector3d(0, 0, 0);
+                }
+                
                 tf2::Quaternion quat ;
                 quat.setRPY(slam.init_roll,slam.init_pitch, slam.init_yaw);
                 T_w_lidar.rot=Eigen::Quaterniond(quat.w(), quat.x(), quat.y(), quat.z());
-                RCLCPP_DEBUG(this->get_logger(), "\033[1;32m  Localization Mode: x: %f y: %f z: %f roll: %f pitch: %f yaw:%f \033[0m",
-                            slam.init_x,slam.init_y,slam.init_z,slam.init_roll, slam.init_pitch, slam.init_yaw);
                 slam.last_T_w_lidar=T_w_lidar;
-                }
 
                 //  initialization = true;
-
-            }else
-            {   
-               
+            } else {   
                 RCLCPP_WARN(this->get_logger(), "start from zero");
                 q_w_curr = Eigen::Quaterniond(cos(slam.init_yaw / 2), 0, 0, sin(slam.init_yaw / 2));
                 q_wodom_pre = Eigen::Quaterniond(cos(slam.init_yaw / 2), 0, 0, sin(slam.init_yaw / 2));
                 T_w_lidar.rot=q_w_curr;
-                if(slam.local_mode)
-                { 
-                  T_w_lidar.pos=Eigen::Vector3d(slam.init_x, slam.init_y, slam.init_z);
-                  tf2::Quaternion quat ;
-                  quat.setRPY(slam.init_roll,slam.init_pitch, slam.init_yaw);
-                  T_w_lidar.rot=Eigen::Quaterniond(quat.w(), quat.x(), quat.y(), quat.z());
                 
+                if(slam.local_mode) { 
+                    T_w_lidar.pos=Eigen::Vector3d(slam.init_x, slam.init_y, slam.init_z);
+                } else {
+                    T_w_lidar.pos=Eigen::Vector3d(0, 0, 0);
                 }
+                
+                tf2::Quaternion quat ;
+                quat.setRPY(slam.init_roll,slam.init_pitch, slam.init_yaw);
+                T_w_lidar.rot=Eigen::Quaterniond(quat.w(), quat.x(), quat.y(), quat.z());
             }
-
-        } else if (startupCount>0) // To use IMU orientation for a while for initialization
-        {
-
+        } else if (startupCount > 0) {// To use IMU orientation for a while for initialization
             RCLCPP_WARN(this->get_logger(), "localization/startup");
             use_imu_roll_pitch_this_step = true;
             selectposePrediction();
@@ -537,17 +531,13 @@ namespace arise_slam {
             T_w_lidar.pos = t_w_curr;
             T_w_lidar.rot = q_w_curr;
             startupCount--;
-        }
-        else
-        {   
-          
+        } else {   
             if (config_.use_imu_roll_pitch)
                 use_imu_roll_pitch_this_step=true;
             selectposePrediction();
             q_w_curr = T_w_lidar.rot;
             t_w_curr = T_w_lidar.pos;
         }
-
     }
 
     void laserMapping::selectposePrediction()
