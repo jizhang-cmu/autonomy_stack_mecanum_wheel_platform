@@ -127,7 +127,7 @@ namespace arise_slam {
         this->declare_parameter<bool>("use_imu_roll_pitch", true);
         this->declare_parameter<bool>("lidar_flip", false);
         this->declare_parameter<std::string>("sensor");
-        this->declare_parameter<bool>("auto_leveling", true);
+        this->declare_parameter<bool>("fixed_lidar_roll_pitch", false);
         this->declare_parameter<double>("lidar_roll", 0.0);
         this->declare_parameter<double>("lidar_pitch", 0.0);
         this->declare_parameter<double>("imu_acc_x_offset", 0.0);
@@ -146,7 +146,7 @@ namespace arise_slam {
         config_.smooth_factor = this->get_parameter("smooth_factor").as_double();
         config_.use_imu_roll_pitch = this->get_parameter("use_imu_roll_pitch").as_bool();
         config_.lidar_flip = this->get_parameter("lidar_flip").as_bool();
-        config_.auto_leveling = this->get_parameter("auto_leveling").as_bool();
+        config_.fixed_lidar_roll_pitch = this->get_parameter("fixed_lidar_roll_pitch").as_bool();
         config_.lidar_roll = this->get_parameter("lidar_roll").as_double();
         config_.lidar_pitch = this->get_parameter("lidar_pitch").as_double();
         config_.imu_acc_x_offset = this->get_parameter("imu_acc_x_offset").as_double();
@@ -892,7 +892,7 @@ namespace arise_slam {
           if (imudata->time - first_imu_time > 1.0 and imu_init_success == false)
             {   
                 //TODO: IMUInit might be not necessary since it is only for accleration 
-                imu_Init->auto_leveling = config_.auto_leveling;
+                imu_Init->fixed_lidar_roll_pitch = config_.fixed_lidar_roll_pitch;
                 imu_Init->lidar_roll = config_.lidar_roll;
                 imu_Init->lidar_pitch = config_.lidar_pitch;
                 imu_Init->imuInit(imuBuf);

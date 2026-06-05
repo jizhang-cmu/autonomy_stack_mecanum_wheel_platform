@@ -132,7 +132,7 @@ target_link_libraries(imu_preintegration_node
 
 # Feature Extraction node
 add_executable(feature_extraction_node src/featureExtraction_node.cpp)
-ament_target_dependencies(feature_extraction_node rclcpp nav_msgs sensor_msgs arise_slam_mid360_msgs livox_ros_driver2)
+ament_target_dependencies(feature_extraction_node rclcpp nav_msgs sensor_msgs geometry_msgs arise_slam_mid360_msgs livox_ros_driver2)
 target_link_libraries(feature_extraction_node 
   ${PCL_LIBRARIES}
   ${TBB_LIBRARIES}
