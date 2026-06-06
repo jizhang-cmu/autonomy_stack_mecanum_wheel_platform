@@ -267,6 +267,7 @@ namespace arise_slam {
         bool laser_imu_sync = false;
         bool use_imu_roll_pitch_this_step = false;
         bool initialization = false;
+        bool initialization2 = false;
         bool imuodomAvailable = false;
         bool imuorientationAvailable = false;
         bool lastimuodomAvaliable=false;

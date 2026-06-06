@@ -939,9 +939,13 @@ namespace arise_slam {
         odomAftMapped.pose.pose.position.y = t_w_curr.y();
         odomAftMapped.pose.pose.position.z = t_w_curr.z();
 
-        shiftX = (1.0 - config_.shift_avg_ratio) * shiftX + config_.shift_avg_ratio * (odomAftMapped.pose.pose.position.x - poseX);
-        shiftY = (1.0 - config_.shift_avg_ratio) * shiftY + config_.shift_avg_ratio * (odomAftMapped.pose.pose.position.y - poseY);
-        shiftZ = (1.0 - config_.shift_avg_ratio) * shiftZ + config_.shift_avg_ratio * (odomAftMapped.pose.pose.position.z - poseZ);
+        if (initialization2)
+        {
+            shiftX = (1.0 - config_.shift_avg_ratio) * shiftX + config_.shift_avg_ratio * (odomAftMapped.pose.pose.position.x - poseX);
+            shiftY = (1.0 - config_.shift_avg_ratio) * shiftY + config_.shift_avg_ratio * (odomAftMapped.pose.pose.position.y - poseY);
+            shiftZ = (1.0 - config_.shift_avg_ratio) * shiftZ + config_.shift_avg_ratio * (odomAftMapped.pose.pose.position.z - poseZ);
+        }
+        if (initialization) initialization2 = true;
 
         poseX = odomAftMapped.pose.pose.position.x;
         poseY = odomAftMapped.pose.pose.position.y;
