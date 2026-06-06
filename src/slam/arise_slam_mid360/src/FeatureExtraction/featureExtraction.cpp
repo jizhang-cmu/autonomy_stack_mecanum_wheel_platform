@@ -180,6 +180,10 @@ namespace arise_slam {
         this->declare_parameter<double>("blindDiskHigh");
         this->declare_parameter<double>("blindDiskRadius");
         this->declare_parameter<double>("maxAdjDiff");
+        this->declare_parameter<double>("pointAdjX2Y");
+        this->declare_parameter<double>("pointAdjX2Z");
+        this->declare_parameter<double>("pointAdjY2X");
+        this->declare_parameter<double>("pointAdjY2Z");
         this->declare_parameter<bool>("use_dynamic_mask");
         this->declare_parameter<bool>("use_imu_roll_pitch");
         this->declare_parameter<bool>("use_up_realsense_points");
@@ -211,6 +215,10 @@ namespace arise_slam {
         config_.box_size.blindDiskHigh = this->get_parameter("blindDiskHigh").as_double();
         config_.box_size.blindDiskRadius = this->get_parameter("blindDiskRadius").as_double();
         config_.box_size.maxAdjDiff = this->get_parameter("maxAdjDiff").as_double();
+        config_.pointAdjX2Y = this->get_parameter("pointAdjX2Y").as_double();
+        config_.pointAdjX2Z = this->get_parameter("pointAdjX2Z").as_double();
+        config_.pointAdjY2X = this->get_parameter("pointAdjY2X").as_double();
+        config_.pointAdjY2Z = this->get_parameter("pointAdjY2Z").as_double();
         config_.use_imu_roll_pitch = this->get_parameter("use_imu_roll_pitch").as_bool();
         config_.use_up_realsense_points = this->get_parameter("use_up_realsense_points").as_bool();
         config_.use_down_realsense_points = this->get_parameter("use_down_realsense_points").as_bool();       
@@ -306,6 +314,18 @@ namespace arise_slam {
                 {
 
                     cloud_out.points[j] = cloud_in.points[i];
+
+                    float xTerm = fabs(point.x * sqrt(fabs(point.x)));
+                    float yTerm = fabs(point.y * sqrt(fabs(point.y)));
+                    float dx2y = config_.pointAdjX2Y * xTerm;
+                    float dx2z = config_.pointAdjX2Z * xTerm;
+                    float dy2x = config_.pointAdjY2X * yTerm;
+                    float dy2z = config_.pointAdjY2Z * yTerm;
+
+                    cloud_out.points[j].x += dy2x;
+                    cloud_out.points[j].y += dx2y;
+                    cloud_out.points[j].z += dx2z + dy2z;
+
                     j++;
                 }
             }
