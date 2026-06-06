@@ -498,15 +498,8 @@ namespace arise_slam {
                 //q_w_curr = q_wodom_curr;
                 q_wodom_pre = q_w_curr;
                 T_w_lidar.rot=q_w_curr;
-                
-                if (slam.local_mode) {
-                    T_w_lidar.pos=Eigen::Vector3d(slam.init_x, slam.init_y, slam.init_z);
-                    RCLCPP_DEBUG(this->get_logger(), "\033[1;32m  Localization Mode: x: %f y: %f z: %f roll: %f pitch: %f yaw:%f \033[0m",
-                                 slam.init_x,slam.init_y,slam.init_z,slam.init_roll, slam.init_pitch, slam.init_yaw);
-                } else {
-                    T_w_lidar.pos=Eigen::Vector3d(0, 0, 0);
-                }
 
+                T_w_lidar.pos=Eigen::Vector3d(slam.init_x, slam.init_y, slam.init_z);
                 tf2::Quaternion quat;
                 if (config_.fixed_init_roll_pitch) {
                     quat.setRPY(slam.init_roll, slam.init_pitch, slam.init_yaw);
@@ -516,6 +509,11 @@ namespace arise_slam {
                 T_w_lidar.rot=Eigen::Quaterniond(quat.w(), quat.x(), quat.y(), quat.z());
                 slam.last_T_w_lidar=T_w_lidar;
 
+                if (slam.local_mode) {
+                    RCLCPP_DEBUG(this->get_logger(), "\033[1;32m  Localization Mode: x: %f y: %f z: %f roll: %f pitch: %f yaw:%f \033[0m",
+                                 slam.init_x,slam.init_y,slam.init_z,slam.init_roll, slam.init_pitch, slam.init_yaw);
+                }
+
                 //  initialization = true;
             } else {   
                 RCLCPP_WARN(this->get_logger(), "start from zero");
@@ -523,12 +521,7 @@ namespace arise_slam {
                 q_wodom_pre = Eigen::Quaterniond(cos(slam.init_yaw / 2), 0, 0, sin(slam.init_yaw / 2));
                 T_w_lidar.rot=q_w_curr;
                 
-                if (slam.local_mode) { 
-                    T_w_lidar.pos=Eigen::Vector3d(slam.init_x, slam.init_y, slam.init_z);
-                } else {
-                    T_w_lidar.pos=Eigen::Vector3d(0, 0, 0);
-                }
-
+                T_w_lidar.pos=Eigen::Vector3d(slam.init_x, slam.init_y, slam.init_z);
                 tf2::Quaternion quat;
                 if (config_.fixed_init_roll_pitch) {
                     quat.setRPY(slam.init_roll,slam.init_pitch, slam.init_yaw);
