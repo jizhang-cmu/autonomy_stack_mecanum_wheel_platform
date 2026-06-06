@@ -87,6 +87,10 @@ namespace arise_slam {
         bool fixed_lidar_roll_pitch;
         double lidar_roll;
         double lidar_pitch;
+        double pointAdjX2Y;
+        double pointAdjX2Z;
+        double pointAdjY2X;
+        double pointAdjY2Z;
         int N_SCANS;
         int provide_point_time;
         int point_filter_num;
