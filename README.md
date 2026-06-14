@@ -308,6 +308,8 @@ ros2 bag play 'bagfolder_path/bagfile_name.mcap (or bagfile_name.db3)'
 
 ## AI Extensions
 
+For a semantic waypoint proof-of-concept that turns AI detections into `/joy` and `/way_point` commands, see [docs/ai_extension_poc_cn.md](docs/ai_extension_poc_cn.md).
+
 ### Installing Add-on Computer
 
 Multiple options are available for advanced AI support. Users can mount an Jetson AGX Orin computer or a gaming laptop in the reserved spaces. For either option, use the 19v or 110v/220v output to power on the computer. The add-on computer should have Ubuntu 24.04 and [ROS2 Jazzy](https://docs.ros.org/en/jazzy/Installation.html) installed. Connect the add-on computer to the NUC i7 computer via an ethernet cable (optionally with USB-Ethernet adapters on one or both sides). We recommend using manual IP and setting the subnet address to 10.1.1.x (e.g. NUC i7 computer at 10.1.1.100 and add-on computer at 10.1.1.101). With the vehicle system running on the NUC i7 computer, users should be able to list all the topics on the add-on computer using `ros2 topic list`. If also connecting the add-on computer to the internet, configure it to 'Use this connection only for resources on its network' for the Ethernet connection to the NUC i7 computer.
