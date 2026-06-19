@@ -1,0 +1,28 @@
+# Conservative starting profile for Hex Ark differential / two-wheel bases.
+#
+# Use this through local_planner.launch with:
+#   config:=hex_ark_standard
+#
+# The launch file still owns footprint and speed parameters such as
+# vehicleLength, vehicleWidth, maxSpeed, maxAccel, and autonomySpeed.
+# Tune those values from the measured Ark platform before real driving.
+localPlanner:
+  ros__parameters:
+    # Negative disables omnidirectional goal behavior. This keeps the planner in
+    # standard-wheel mode and avoids commanding lateral goal motion.
+    omniDirGoalThre: -1.0
+
+pathFollower:
+  ros__parameters:
+    omniDirGoalThre: -1.0
+
+    # Start below the upstream standard-wheel yaw authority. Increase only after
+    # confirming the Hex bridge, Ark firmware limits, and SLAM latency.
+    yawRateGain: 4.0
+    stopYawRateGain: 6.0
+    maxYawRate: 60.0
+
+    # Require closer heading alignment before moving forward, which is safer for
+    # a two-wheel base that cannot strafe out of local conflicts.
+    dirDiffThre: 0.12
+    stopDisThre: 0.20
