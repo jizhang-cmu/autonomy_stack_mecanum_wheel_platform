@@ -116,6 +116,8 @@ int pathPointID = 0;
 bool pathInit = false;
 bool navFwd = true;
 double switchTime = 0;
+bool pathDirInit = false;
+float pathDirRec = 0;
 bool serialOpen = false;
 
 nav_msgs::msg::Path path;
@@ -379,6 +381,13 @@ int main(int argc, char** argv)
       disY = path.poses[pathPointID].pose.position.y - vehicleYRel;
       dis = sqrt(disX * disX + disY * disY);
       float pathDir = atan2(disY, disX);
+
+      if (pathSize > 1) {
+        pathDirRec = pathDir;
+        pathDirInit = true;
+      } else if (pathDirInit) {
+        pathDir = pathDirRec;
+      }
 
       float dirDiff = vehicleYaw - vehicleYawRec - pathDir;
       if (dirDiff > PI) dirDiff -= 2 * PI;
